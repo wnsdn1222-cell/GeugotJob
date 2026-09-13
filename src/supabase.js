@@ -16,6 +16,20 @@ function requireSupabase() {
   return supabase;
 }
 
+async function retryJwtClockSkew(operation, attempts = 3) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!/JWT issued at future/i.test(error?.message ?? '') || attempt === attempts - 1) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 export async function signUpWithEmail({ email, password, fullName, role }) {
   const client = requireSupabase();
   const { data, error } = await client.auth.signUp({
@@ -45,19 +59,23 @@ export async function signOut() {
 
 export async function getMyProfile() {
   const client = requireSupabase();
-  const { data, error } = await client.from('profiles').select('id, role, full_name, phone').single();
-  if (error) throw error;
-  return data;
+  return retryJwtClockSkew(async () => {
+    const { data, error } = await client.from('profiles').select('id, role, full_name, phone').single();
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function loadReservations() {
   const client = requireSupabase();
-  const { data, error } = await client
-    .from('reservations')
-    .select('id, reservation_type, title, reserved_at, ends_at, status, location, notes')
-    .order('reserved_at', { ascending: true });
-  if (error) throw error;
-  return data;
+  return retryJwtClockSkew(async () => {
+    const { data, error } = await client
+      .from('reservations')
+      .select('id, reservation_type, title, reserved_at, ends_at, status, location, notes')
+      .order('reserved_at', { ascending: true });
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function createReservation(reservation) {

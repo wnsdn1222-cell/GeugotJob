@@ -194,9 +194,16 @@ function reservationItem(reservation) {
 async function renderDashboard(session) {
   memberApp.innerHTML = '<p class="member-loading">회원 정보와 예약을 불러오는 중입니다…</p>';
   try {
-    const [profile, reservations] = await Promise.all([getMyProfile(), loadReservations()]);
+    const [profileResult, reservationsResult] = await Promise.allSettled([getMyProfile(), loadReservations()]);
+    const fallbackRole = session.user.user_metadata?.role === 'employer' ? 'employer' : 'worker';
+    const profile = profileResult.status === 'fulfilled'
+      ? profileResult.value
+      : { role: fallbackRole, full_name: session.user.user_metadata?.full_name || '' };
+    const reservations = reservationsResult.status === 'fulfilled' ? reservationsResult.value : [];
+    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected';
     memberApp.innerHTML = `
       <div class="dashboard-head"><div><span>${profile.role === 'employer' ? '고용주' : '근로자'} 회원</span><h3>${escapeHtml(profile.full_name || session.user.email)}</h3><p>${escapeHtml(session.user.email)}</p></div><button type="button" class="button ghost" id="sign-out">로그아웃</button></div>
+      ${hasLoadWarning ? '<div class="dashboard-warning"><p><b>로그인은 정상적으로 완료되었습니다.</b><br>일부 정보를 잠시 불러오지 못했습니다.</p><button type="button" id="retry-dashboard">다시 불러오기</button></div>' : ''}
       <div class="reservation-grid">
         <form id="reservation-form" class="reservation-form">
           <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
@@ -211,6 +218,7 @@ async function renderDashboard(session) {
       </div>`;
 
     memberApp.querySelector('#sign-out').addEventListener('click', signOut);
+    memberApp.querySelector('#retry-dashboard')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('#reservation-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = event.currentTarget.querySelector('[type="submit"]');
