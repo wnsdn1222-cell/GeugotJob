@@ -30,16 +30,6 @@ export async function signUpWithEmail({ email, password, fullName, role }) {
   return data;
 }
 
-export async function resendSignupEmail(email) {
-  const client = requireSupabase();
-  const { error } = await client.auth.resend({
-    type: 'signup',
-    email: email.trim().toLowerCase(),
-    options: { emailRedirectTo: `${window.location.origin}/` }
-  });
-  if (error) throw error;
-}
-
 export async function signInWithEmail({ email, password }) {
   const client = requireSupabase();
   const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });

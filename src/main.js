@@ -3,7 +3,6 @@ import {
   supabase,
   isSupabaseConfigured,
   signUpWithEmail,
-  resendSignupEmail,
   signInWithEmail,
   signOut,
   getMyProfile,
@@ -106,17 +105,10 @@ mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click'
 const memberApp = document.querySelector('#member-app');
 let authMode = 'login';
 let selectedRole = 'worker';
-let pendingSignupEmail = '';
 
 const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 })[character]);
-
-const maskEmail = (email = '') => {
-  const [local, domain] = String(email).split('@');
-  if (!local || !domain) return email;
-  return `${local.slice(0, 2)}${'*'.repeat(Math.max(2, local.length - 2))}@${domain}`;
-};
 
 const reservationLabels = {
   interview: '면접', consultation: '상담', work_start: '첫 출근', other: '기타',
@@ -133,41 +125,6 @@ function setMemberMessage(message, type = '') {
 function renderAuth() {
   if (!isSupabaseConfigured) {
     memberApp.innerHTML = '<div class="setup-note"><b>연결 설정이 필요합니다.</b><p><code>.env</code>에 Supabase URL과 Publishable Key를 입력하면 로그인과 예약 기능이 활성화됩니다.</p></div>';
-    return;
-  }
-
-  if (authMode === 'verify-email') {
-    memberApp.innerHTML = `
-      <div class="auth-card verification-card">
-        <span class="verification-icon">${icon('check', 30)}</span>
-        <p class="eyebrow">가입 신청 완료</p>
-        <h3>이메일 인증이 필요합니다.</h3>
-        <p><strong>${escapeHtml(maskEmail(pendingSignupEmail))}</strong> 주소로 인증 메일을 보냈습니다. 메일 안의 인증 링크를 누르면 로그인되어 근로자 화면으로 이동합니다.</p>
-        <p class="verification-help">메일이 보이지 않으면 스팸함을 확인하거나 아래 버튼으로 다시 보내 주세요.</p>
-        <div class="verification-actions">
-          <button type="button" class="button lime" id="resend-signup-email">인증 메일 다시 보내기</button>
-          <button type="button" class="button secondary" id="show-login">인증 후 로그인</button>
-        </div>
-        <p class="form-status" role="status"></p>
-      </div>`;
-
-    memberApp.querySelector('#show-login').addEventListener('click', () => {
-      authMode = 'login';
-      renderAuth();
-    });
-    memberApp.querySelector('#resend-signup-email').addEventListener('click', async (event) => {
-      const button = event.currentTarget;
-      button.disabled = true;
-      setMemberMessage('인증 메일을 다시 보내는 중입니다…');
-      try {
-        await resendSignupEmail(pendingSignupEmail);
-        setMemberMessage('인증 메일을 다시 보냈습니다. 받은편지함과 스팸함을 확인해 주세요.', 'success');
-      } catch (error) {
-        setMemberMessage(error.message, 'error');
-      } finally {
-        button.disabled = false;
-      }
-    });
     return;
   }
 
@@ -212,9 +169,7 @@ function renderAuth() {
           await renderDashboard(result.session);
           return;
         }
-        pendingSignupEmail = String(form.get('email')).trim().toLowerCase();
-        authMode = 'verify-email';
-        renderAuth();
+        throw new Error('회원가입을 완료할 수 없습니다. 이미 가입한 이메일이라면 로그인해 주세요.');
       } else {
         await signInWithEmail({ email: form.get('email'), password: form.get('password') });
       }
