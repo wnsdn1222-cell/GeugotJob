@@ -1,4 +1,15 @@
 import './styles.css';
+import {
+  supabase,
+  isSupabaseConfigured,
+  signUpWithEmail,
+  signInWithEmail,
+  signOut,
+  getMyProfile,
+  loadReservations,
+  createReservation,
+  cancelReservation
+} from './supabase.js';
 
 const app = document.querySelector('#app');
 
@@ -71,7 +82,7 @@ app.innerHTML = `
 
     <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 판단의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>매칭과 채용에 필요한 범위 안에서만 정보를 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>AI는 근거를 제시하지만 채용 여부를 대신 결정하지 않습니다.</p></article><article><b>03</b><h3>포인트는 기록부터 투명하게</h3><p>적립과 차감 내역을 거래 단위로 남기고 중복 지급을 막습니다.</p></article></div></section>
 
-    <section class="start-section" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">START WITH GEUGOT JOB</p><h2>좋은 채용은,<br>서로의 조건을 아는 데서 시작합니다.</h2><div><button class="button lime" data-start="employer">고용주로 시작하기 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자로 시작하기</button></div><p class="start-status" role="status" aria-live="polite"></p></section>
+    <section class="start-section" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">MEMBER & RESERVATION</p><h2>가입부터 예약까지,<br>한곳에서 관리하세요.</h2><div class="start-choices"><button class="button lime" data-start="employer">고용주로 시작하기 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자로 시작하기</button></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
   </main>
 
   <footer><a class="brand" href="#top"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#">개인정보 처리방침</a><a href="#">이용약관</a><a href="#">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
@@ -91,10 +102,163 @@ function toggleMenu(force) {
 
 menuButton.addEventListener('click', () => toggleMenu());
 mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => toggleMenu(false)));
+const memberApp = document.querySelector('#member-app');
+let authMode = 'login';
+let selectedRole = 'worker';
+
+const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+})[character]);
+
+const reservationLabels = {
+  interview: '면접', consultation: '상담', work_start: '첫 출근', other: '기타',
+  requested: '요청됨', confirmed: '확정', cancelled: '취소', completed: '완료'
+};
+
+function setMemberMessage(message, type = '') {
+  const status = memberApp.querySelector('.form-status');
+  if (!status) return;
+  status.className = `form-status ${type}`.trim();
+  status.textContent = message;
+}
+
+function renderAuth() {
+  if (!isSupabaseConfigured) {
+    memberApp.innerHTML = '<div class="setup-note"><b>연결 설정이 필요합니다.</b><p><code>.env</code>에 Supabase URL과 Publishable Key를 입력하면 로그인과 예약 기능이 활성화됩니다.</p></div>';
+    return;
+  }
+
+  const isSignup = authMode === 'signup';
+  memberApp.innerHTML = `
+    <div class="auth-card">
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="${!isSignup ? 'active' : ''}" data-auth-mode="login">로그인</button>
+        <button type="button" class="${isSignup ? 'active' : ''}" data-auth-mode="signup">회원가입</button>
+      </div>
+      <form id="auth-form">
+        ${isSignup ? `<label>이름<input name="fullName" autocomplete="name" maxlength="60" required placeholder="홍길동"></label><label>회원 유형<select name="role"><option value="worker" ${selectedRole === 'worker' ? 'selected' : ''}>근로자</option><option value="employer" ${selectedRole === 'employer' ? 'selected' : ''}>고용주</option></select></label>` : ''}
+        <label>이메일<input type="email" name="email" autocomplete="email" required placeholder="name@example.com"></label>
+        <label>비밀번호<input type="password" name="password" autocomplete="${isSignup ? 'new-password' : 'current-password'}" minlength="8" required placeholder="영문·숫자를 포함한 8자 이상"></label>
+        ${isSignup ? '<label>비밀번호 확인<input type="password" name="passwordConfirm" autocomplete="new-password" minlength="8" required placeholder="비밀번호를 다시 입력하세요"></label>' : ''}
+        <button class="button lime" type="submit">${isSignup ? '회원가입' : '로그인'}</button>
+        <p class="form-status" role="status"></p>
+      </form>
+    </div>`;
+
+  memberApp.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
+    authMode = button.dataset.authMode;
+    renderAuth();
+  }));
+
+  memberApp.querySelector('#auth-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submitButton = event.currentTarget.querySelector('[type="submit"]');
+    const form = new FormData(event.currentTarget);
+    submitButton.disabled = true;
+    setMemberMessage('처리 중입니다…');
+    try {
+      if (isSignup) {
+        if (form.get('password') !== form.get('passwordConfirm')) {
+          throw new Error('비밀번호가 서로 일치하지 않습니다.');
+        }
+        const result = await signUpWithEmail({
+          email: form.get('email'), password: form.get('password'),
+          fullName: form.get('fullName'), role: form.get('role')
+        });
+        if (!result.session) {
+          event.currentTarget.reset();
+          setMemberMessage('회원가입이 완료되었습니다. 받은 이메일의 인증 링크를 누른 뒤 로그인해 주세요.', 'success');
+        }
+      } else {
+        await signInWithEmail({ email: form.get('email'), password: form.get('password') });
+      }
+    } catch (error) {
+      setMemberMessage(error.message, 'error');
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
+function reservationItem(reservation) {
+  const when = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(reservation.reserved_at));
+  return `<article class="reservation-item">
+    <div><span>${escapeHtml(reservationLabels[reservation.reservation_type] ?? reservation.reservation_type)}</span><span class="status ${escapeHtml(reservation.status)}">${escapeHtml(reservationLabels[reservation.status] ?? reservation.status)}</span></div>
+    <h4>${escapeHtml(reservation.title)}</h4><p>${escapeHtml(when)}${reservation.location ? ` · ${escapeHtml(reservation.location)}` : ''}</p>
+    ${reservation.notes ? `<small>${escapeHtml(reservation.notes)}</small>` : ''}
+    ${reservation.status !== 'cancelled' && reservation.status !== 'completed' ? `<button type="button" data-cancel-reservation="${reservation.id}">예약 취소</button>` : ''}
+  </article>`;
+}
+
+async function renderDashboard(session) {
+  memberApp.innerHTML = '<p class="member-loading">회원 정보와 예약을 불러오는 중입니다…</p>';
+  try {
+    const [profile, reservations] = await Promise.all([getMyProfile(), loadReservations()]);
+    memberApp.innerHTML = `
+      <div class="dashboard-head"><div><span>${profile.role === 'employer' ? '고용주' : '근로자'} 회원</span><h3>${escapeHtml(profile.full_name || session.user.email)}</h3><p>${escapeHtml(session.user.email)}</p></div><button type="button" class="button ghost" id="sign-out">로그아웃</button></div>
+      <div class="reservation-grid">
+        <form id="reservation-form" class="reservation-form">
+          <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
+          <label>예약 종류<select name="reservation_type"><option value="interview">면접</option><option value="consultation">상담</option><option value="work_start">첫 출근</option><option value="other">기타</option></select></label>
+          <label>예약명<input name="title" maxlength="120" required placeholder="예: 안산 물류센터 면접"></label>
+          <label>예약 일시<input type="datetime-local" name="reserved_at" required></label>
+          <label>장소<input name="location" maxlength="200" placeholder="주소 또는 온라인"></label>
+          <label>메모<textarea name="notes" rows="3" maxlength="1000" placeholder="필요한 내용을 적어주세요."></textarea></label>
+          <button class="button lime" type="submit">예약 등록</button><p class="form-status" role="status"></p>
+        </form>
+        <div class="reservation-list"><div class="list-head"><span>내 예약</span><b>${reservations.length}건</b></div>${reservations.length ? reservations.map(reservationItem).join('') : '<p class="empty-state">아직 등록된 예약이 없습니다.</p>'}</div>
+      </div>`;
+
+    memberApp.querySelector('#sign-out').addEventListener('click', signOut);
+    memberApp.querySelector('#reservation-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = event.currentTarget.querySelector('[type="submit"]');
+      const form = new FormData(event.currentTarget);
+      button.disabled = true;
+      setMemberMessage('예약을 등록하는 중입니다…');
+      try {
+        await createReservation({
+          reservation_type: form.get('reservation_type'), title: form.get('title').trim(),
+          reserved_at: new Date(form.get('reserved_at')).toISOString(),
+          location: form.get('location').trim() || null, notes: form.get('notes').trim() || null
+        });
+        await renderDashboard(session);
+      } catch (error) {
+        setMemberMessage(error.message, 'error');
+        button.disabled = false;
+      }
+    });
+    memberApp.querySelectorAll('[data-cancel-reservation]').forEach((button) => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await cancelReservation(button.dataset.cancelReservation);
+        await renderDashboard(session);
+      } catch (error) {
+        button.disabled = false;
+        window.alert(error.message);
+      }
+    }));
+  } catch (error) {
+    memberApp.innerHTML = `<div class="setup-note"><b>정보를 불러오지 못했습니다.</b><p>${escapeHtml(error.message)}</p><button class="button ghost" id="sign-out">로그아웃</button></div>`;
+    memberApp.querySelector('#sign-out').addEventListener('click', signOut);
+  }
+}
+
 document.querySelectorAll('[data-start]').forEach((button) => button.addEventListener('click', () => {
-  const role = button.dataset.start === 'employer' ? '고용주' : '근로자';
-  document.querySelector('.start-status').textContent = `${role} 사전 등록을 준비하고 있습니다. 곧 만나요!`;
+  selectedRole = button.dataset.start;
+  authMode = 'signup';
+  renderAuth();
+  memberApp.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }));
+
+if (supabase) {
+  supabase.auth.getSession().then(({ data }) => data.session ? renderDashboard(data.session) : renderAuth());
+  supabase.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(() => session ? renderDashboard(session) : renderAuth(), 0);
+  });
+} else {
+  renderAuth();
+}
 
 const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
   if (entry.isIntersecting) entry.target.classList.add('revealed');

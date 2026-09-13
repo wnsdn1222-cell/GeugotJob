@@ -3,6 +3,7 @@ create extension if not exists pgcrypto;
 create type public.account_role as enum ('worker', 'employer', 'admin');
 create type public.match_status as enum ('recommended', 'shortlisted', 'interview', 'hired', 'passed');
 create type public.withdrawal_status as enum ('requested', 'reviewing', 'paid', 'rejected');
+create type public.reservation_status as enum ('requested', 'confirmed', 'cancelled', 'completed');
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -109,6 +110,24 @@ create table public.visa_support_requests (
   created_at timestamptz not null default now()
 );
 
+create table public.reservations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  reservation_type text not null default 'interview'
+    check (reservation_type in ('interview', 'consultation', 'work_start', 'other')),
+  title text not null check (length(trim(title)) between 1 and 120),
+  reserved_at timestamptz not null,
+  ends_at timestamptz,
+  status public.reservation_status not null default 'requested',
+  location text,
+  notes text,
+  job_posting_id uuid references public.job_postings(id) on delete set null,
+  match_id uuid references public.matches(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at is null or ends_at > reserved_at)
+);
+
 create index workers_profile_id_idx on public.workers(profile_id);
 create index employers_profile_id_idx on public.employers(profile_id);
 create index job_postings_employer_id_idx on public.job_postings(employer_id);
@@ -117,6 +136,8 @@ create index matches_worker_id_idx on public.matches(worker_id);
 create index points_ledger_user_id_idx on public.points_ledger(user_id);
 create index withdrawal_requests_user_id_idx on public.withdrawal_requests(user_id);
 create index visa_support_requests_user_id_idx on public.visa_support_requests(user_id);
+create index reservations_user_id_reserved_at_idx on public.reservations(user_id, reserved_at desc);
+create index reservations_job_posting_id_idx on public.reservations(job_posting_id) where job_posting_id is not null;
 
 alter table public.profiles enable row level security;
 alter table public.workers enable row level security;
@@ -126,16 +147,20 @@ alter table public.matches enable row level security;
 alter table public.points_ledger enable row level security;
 alter table public.withdrawal_requests enable row level security;
 alter table public.visa_support_requests enable row level security;
+alter table public.reservations enable row level security;
 
 revoke all on table public.profiles, public.workers, public.employers, public.job_postings,
-  public.matches, public.points_ledger, public.withdrawal_requests, public.visa_support_requests
+  public.matches, public.points_ledger, public.withdrawal_requests, public.visa_support_requests,
+  public.reservations
 from anon, authenticated;
 
 grant select on public.profiles, public.workers, public.employers, public.job_postings,
-  public.matches, public.points_ledger, public.withdrawal_requests, public.visa_support_requests
+  public.matches, public.points_ledger, public.withdrawal_requests, public.visa_support_requests,
+  public.reservations
 to authenticated;
-grant insert on public.workers, public.employers, public.job_postings, public.withdrawal_requests, public.visa_support_requests to authenticated;
-grant update on public.workers, public.employers, public.job_postings to authenticated;
+grant insert on public.workers, public.employers, public.job_postings, public.withdrawal_requests,
+  public.visa_support_requests, public.reservations to authenticated;
+grant update on public.workers, public.employers, public.job_postings, public.reservations to authenticated;
 grant update (full_name, phone, avatar_url, updated_at) on public.profiles to authenticated;
 grant update (status, employer_notes, updated_at) on public.matches to authenticated;
 
@@ -227,6 +252,14 @@ create policy "users read own visa requests" on public.visa_support_requests for
 create policy "users create own visa requests" on public.visa_support_requests for insert to authenticated
   with check ((select auth.uid()) = user_id);
 
+create policy "users read own reservations" on public.reservations for select to authenticated
+  using ((select auth.uid()) = user_id);
+create policy "users create own reservations" on public.reservations for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+create policy "users update own reservations" on public.reservations for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
 create function private.handle_new_user()
 returns trigger
 language plpgsql
@@ -234,8 +267,15 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, full_name)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''));
+  insert into public.profiles (id, role, full_name)
+  values (
+    new.id,
+    case
+      when new.raw_user_meta_data ->> 'role' = 'employer' then 'employer'::public.account_role
+      else 'worker'::public.account_role
+    end,
+    coalesce(new.raw_user_meta_data ->> 'full_name', '')
+  );
   return new;
 end;
 $$;

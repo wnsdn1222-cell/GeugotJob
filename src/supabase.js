@@ -11,6 +11,81 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
+function requireSupabase() {
+  if (!supabase) throw new Error('Supabase 환경 변수가 설정되지 않았습니다.');
+  return supabase;
+}
+
+export async function signUpWithEmail({ email, password, fullName, role }) {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+    options: {
+      data: { full_name: fullName.trim(), role },
+      emailRedirectTo: `${window.location.origin}/`
+    }
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function signInWithEmail({ email, password }) {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  if (error) throw error;
+  return data;
+}
+
+export async function signOut() {
+  const client = requireSupabase();
+  const { error } = await client.auth.signOut();
+  if (error) throw error;
+}
+
+export async function getMyProfile() {
+  const client = requireSupabase();
+  const { data, error } = await client.from('profiles').select('id, role, full_name, phone').single();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadReservations() {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('reservations')
+    .select('id, reservation_type, title, reserved_at, ends_at, status, location, notes')
+    .order('reserved_at', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createReservation(reservation) {
+  const client = requireSupabase();
+  const { data: authData, error: authError } = await client.auth.getUser();
+  if (authError || !authData.user) throw authError ?? new Error('로그인이 필요합니다.');
+
+  const { data, error } = await client
+    .from('reservations')
+    .insert({ ...reservation, user_id: authData.user.id })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function cancelReservation(id) {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from('reservations')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function loadRecommendedWorkers() {
   if (!supabase) return null;
 
