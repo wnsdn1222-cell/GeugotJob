@@ -50,7 +50,7 @@ app.innerHTML = `
       </div>
       <div class="match-preview" aria-label="추천 인재 예시">
         <div class="preview-top"><span>${icon('spark', 17)} 추천 인재</span><b>92<small>점</small></b></div>
-        <div class="person"><span class="avatar">NA</span><div><strong>NGUYEN AN</strong><small>생산·포장 · 경력 3년</small></div><i>적합</i></div>
+        <div class="person"><span class="avatar">홍</span><div><strong>홍길동</strong><small>생산·포장 · 경력 3년</small></div><i>적합</i></div>
         <div class="factors"><span><b>8.4km</b>통근 거리</span><span><b>96</b>성실성</span><span><b>88</b>소통 능력</span></div>
         <p><span></span> 비자 조건 일치 · 유사 업무 경험 · 오전 근무 가능</p>
       </div>

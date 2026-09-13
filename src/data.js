@@ -7,7 +7,7 @@ export const workers = [
     summary: '동일 직무 경험이 풍부하고 최근 6개월 결근 이력이 없습니다. 대중교통 기준 출근이 안정적입니다.'
   },
   {
-    id: 'worker-002', name: 'NGUYEN AN', initials: 'NA', nationality: '베트남', role: '생산 · 포장',
+    id: 'worker-002', name: '홍길동', initials: '홍', nationality: '대한민국', role: '생산 · 포장',
     location: '경기 시흥시', distance: 5.1, commute: 24, experience: '2년 8개월', availability: '9월 16일',
     score: 89, fit: '적합', reliability: 92, communication: 82, skill: 91, color: 'blue',
     languages: ['베트남어', '한국어 TOPIK 3'], tags: ['교대', 'E-9', '기숙사 선호'], completed: 96, attendance: 97.1,
@@ -32,7 +32,7 @@ export const workers = [
 export const notifications = [
   { title: '새 추천 인재 3명', body: '안산 물류센터 공고에 새로운 후보가 추천됐어요.', time: '10분 전' },
   { title: '면접 일정 확인', body: '김민준 님이 내일 14:00 면접을 확인했어요.', time: '1시간 전' },
-  { title: '서류 검토 완료', body: 'NGUYEN AN 님의 체류 자격 확인이 완료됐어요.', time: '어제' }
+  { title: '서류 검토 완료', body: '홍길동 님의 자격 확인이 완료됐어요.', time: '어제' }
 ];
 
 export const ledger = [
