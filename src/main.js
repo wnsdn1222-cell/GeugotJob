@@ -48,6 +48,8 @@ app.innerHTML = `
   <div class="mobile-menu" aria-hidden="true"><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a><a href="#start">서비스 시작하기</a></div>
 
   <main id="main">
+    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">MEMBER & RESERVATION · LIVE</p><h2>로그인하고<br>그곳잡을 시작하세요.</h2><p class="start-intro">회원가입·로그인과 예약 등록·조회는 Supabase에 실제로 저장됩니다.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
+
     <section class="hero" id="top">
       <img class="hero-photo" src="/hero-workplace.png" alt="물류 현장에서 함께 일하는 고용주와 근로자" />
       <div class="hero-shade"></div>
@@ -99,7 +101,6 @@ app.innerHTML = `
 
     <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
-    <section class="start-section" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">MEMBER & RESERVATION · LIVE</p><h2>가입·로그인·예약은<br>실제로 저장됩니다.</h2><div class="start-choices"><button class="button lime" data-start="employer">고용주로 시작하기 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자로 시작하기</button></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
   </main>
 
   <footer><a class="brand" href="#top"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#">개인정보 처리방침</a><a href="#">이용약관</a><a href="#">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
