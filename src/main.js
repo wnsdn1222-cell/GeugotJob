@@ -31,7 +31,6 @@ import {
   saveReuseIntention,
   saveMatchingCriterion,
   saveOperatingCost,
-  loadDemoRecords,
   loadServiceLaunchConsole,
   loadServiceLaunchMemberData,
   syncServiceCase,
@@ -92,8 +91,6 @@ app.innerHTML = `
     </section>
 
     <section class="signal-strip" aria-label="시연용 가상 이용 실적"><p><em class="demo-badge dark">${demoDataLabel}</em>가상의 이용 흐름을<br><strong>한 화면에서 확인하세요.</strong></p>${demoUsageStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
-    <section class="demo-directory section" aria-labelledby="demo-directory-title"><div class="section-heading"><div><span>DEMO RECORD DIRECTORY</span><em class="demo-badge">${demoDataLabel}</em><h2 id="demo-directory-title">가상 레코드를 실제 회원과 분리했습니다.</h2></div><p>아래 사업장과 근로자는 화면 시연을 위한 별도 Supabase 레코드입니다. 로그인 회원, 소개 실적, 결제 통계에는 포함되지 않습니다.</p></div><div id="demo-record-directory" class="demo-record-grid"><p class="empty-state">가상 레코드를 불러오는 중입니다…</p></div></section>
-
     <section class="section intro" id="how">
       <div class="section-kicker"><span>01</span><p class="eyebrow">HOW IT WORKS</p></div>
       <div class="section-heading"><h2>공고부터 첫 출근까지,<br>흐름은 더 단순하게.</h2><p>필요한 조건을 입력하면 추천 근거가 정리됩니다. 제안과 응답, 채용 상태까지 한곳에서 이어집니다.</p></div>
@@ -150,20 +147,6 @@ let dashboardNotice = '';
 const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 })[character]);
-
-async function renderDemoRecords() {
-  const panel = document.querySelector('#demo-record-directory');
-  if (!panel) return;
-  try {
-    const data = await loadDemoRecords();
-    if (!data) throw new Error('Supabase 연결이 설정되지 않았습니다.');
-    panel.innerHTML = `<div class="demo-record-column"><div class="list-head"><span>가상 고용주</span><b>${data.employerCount}건</b></div>${data.employers.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(item.city)} · ${escapeHtml(item.industry)}</p></article>`).join('')}</div><div class="demo-record-column"><div class="list-head"><span>가상 근로자</span><b>${data.workerCount}건</b></div>${data.workers.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(item.city)} · ${escapeHtml(item.job_category)} · 가상 경력 ${Number(item.experience_months)}개월</p></article>`).join('')}</div>`;
-  } catch (error) {
-    panel.innerHTML = `<p class="empty-state">가상 레코드를 불러오지 못했습니다. 실제 데이터로 표시하지 않습니다.<br>${escapeHtml(error.message)}</p>`;
-  }
-}
-
-renderDemoRecords();
 
 const reservationLabels = {
   interview: '면접', consultation: '상담', work_start: '첫 출근', other: '기타',
@@ -575,16 +558,16 @@ async function renderDashboard(session) {
     const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected') || (isOpenBetaDevelopment && openBetaResult.status === 'rejected') || (isServiceLaunchDevelopment && launchResult.status === 'rejected');
     const mvpContent = isJobInfoMvpDevelopment
       ? (mvpData ? (profile.role === 'employer' ? employerMvp(profile, mvpData) : workerMvp(profile, mvpData)) : '<div class="dashboard-warning"><p><b>MVP 데이터를 불러오지 못했습니다.</b><br>저장 기능은 실행하지 않았습니다.</p><button type="button" id="retry-mvp">다시 불러오기</button></div>')
-      : '<div class="compliance-banner locked"><b>직업정보 MVP 준비 완료 · 운영 잠금</b><p>직업정보제공사업 신고 완료가 확인되기 전에는 공고 등록·지원·직접 연락 기능을 운영하지 않습니다. 개발 환경에서만 기능을 검증할 수 있습니다.</p></div>';
+      : '';
     const betaContent = isClosedBetaDevelopment && profile.role === 'admin'
       ? (betaData ? closedBetaConsole(betaData) : '<div class="dashboard-warning"><p><b>클로즈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
-      : '<div class="compliance-banner locked"><b>시제품 1 클로즈 베타 · 운영 잠금</b><p>유료직업소개사업 등록 완료가 확인되지 않았습니다. 실제 소개와 고객 청구는 활성화하지 않으며 관리자 개발 환경에서만 수동 흐름을 검증합니다.</p></div>';
+      : '';
     const openBetaContent = isOpenBetaDevelopment
       ? (openBetaData ? (profile.role === 'admin' ? openBetaAdminConsole(openBetaData) : openBetaMemberPanel(openBetaData, profile.role)) : '<div class="dashboard-warning"><p><b>오픈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
-      : '<div class="compliance-banner locked"><b>시제품 2 오픈 베타 · 운영 잠금</b><p>근거리 기준, 미지급 확정·이용 제한 정책, 유료직업소개사업 등록과 실결제 연동이 확인되지 않았습니다. 실제 데이터 구조는 준비됐지만 운영 기능은 활성화하지 않습니다.</p></div>';
+      : '';
     const launchContent = isServiceLaunchDevelopment
       ? (launchData ? (profile.role === 'admin' ? serviceLaunchAdminConsole(launchData) : serviceLaunchMemberPanel(launchData, profile.role)) : '<div class="dashboard-warning"><p><b>정식 서비스 준비 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
-      : '<div class="compliance-banner locked"><b>서비스 런치 준비 · 운영 잠금</b><p>사업 등록, 정식 수수료, 결제 제공자와 운영 정책이 확인되기 전에는 정식 소개·결제를 활성화하지 않습니다. 근로계약과 임금 지급은 고용주와 근로자가 직접 수행합니다.</p></div>';
+      : '';
     const notice = dashboardNotice;
     dashboardNotice = '';
     const roleLabel = profile.role === 'admin' ? '운영자' : profile.role === 'employer' ? '고용주' : '근로자';
