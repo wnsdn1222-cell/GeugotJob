@@ -1,9 +1,9 @@
 export const demoDataLabel = '시연용 가상 데이터';
 
-export const demoUsageStats = [
-  { value: '200곳', label: '가상 고용주' },
-  { value: '30명', label: '가상 근로자' },
-  { value: '31건', label: '가상 지원 내역' }
+export const prototypeTargetStats = [
+  { value: '30명', label: '고용주 참여 목표' },
+  { value: '200명', label: '근로자 참여 목표' },
+  { value: '미집계', label: '실제 달성 실적' }
 ];
 
 export const demoRecommendation = {

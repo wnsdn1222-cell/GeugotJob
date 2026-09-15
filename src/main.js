@@ -1,5 +1,5 @@
 import './styles.css';
-import { demoDataLabel, demoUsageStats, demoRecommendation, demoInterview } from './demo-data.js';
+import { demoDataLabel, prototypeTargetStats, demoRecommendation, demoInterview } from './demo-data.js';
 import {
   supabase,
   isSupabaseConfigured,
@@ -31,6 +31,7 @@ import {
   saveReuseIntention,
   saveMatchingCriterion,
   saveOperatingCost,
+  loadDemoRecords,
   loadServiceLaunchConsole,
   loadServiceLaunchMemberData,
   syncServiceCase,
@@ -60,25 +61,25 @@ const icon = (name, size = 20) => {
 
 app.innerHTML = `
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="그곳잡 홈"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a>
-    <nav class="desktop-nav" aria-label="주요 메뉴"><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></nav>
+    <a class="brand" href="#start" aria-label="그곳잡 홈"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a>
+    <nav class="desktop-nav" aria-label="주요 메뉴"><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></nav>
     <div class="header-actions"><a class="text-link" href="#for-worker">일자리 찾기</a><a class="button small" href="#start">인재 찾기 ${icon('arrow', 17)}</a></div>
     <button class="menu-button" type="button" aria-label="메뉴 열기" aria-expanded="false">${icon('menu', 24)}</button>
   </header>
-  <div class="mobile-menu" aria-hidden="true"><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a><a href="#start">서비스 시작하기</a></div>
+  <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></div>
 
   <main id="main">
-    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">MEMBER & RESERVATION · LIVE</p><h2>로그인하고<br>그곳잡을 시작하세요.</h2><p class="start-intro">회원가입·로그인과 예약 등록·조회는 Supabase에 실제로 저장됩니다.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
+    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · MEMBER START</p><h2>로그인하고<br>그곳잡을 시작하세요.</h2><p class="start-intro">사이트 공개 배포와 정식 매칭 서비스 운영 상태를 구분해 안내합니다.</p><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
 
     <section class="hero" id="top">
       <img class="hero-photo" src="/hero-workplace.png" alt="물류 현장에서 함께 일하는 고용주와 근로자" />
       <div class="hero-shade"></div>
       <div class="hero-content">
-        <p class="eyebrow light">서비스 이용 흐름 프로토타입</p>
+        <p class="eyebrow light">02 · 서비스 소개</p>
         <h1>사람을 찾는 일,<br><em>감이 아닌 근거로.</em></h1>
-        <p class="hero-copy">고용주와 근로자가 조건을 확인하고 직접 지원·연락하는 흐름을 준비하고 있습니다. 로그인과 예약은 실제 저장되며 추천 화면은 시연 예시입니다.</p>
+        <p class="hero-copy">이 웹사이트는 공개 배포되어 있습니다. 회원가입·로그인과 예약은 실제 저장되며, 정식 매칭 서비스에 포함될 공고·지원·직접 연락 기능은 아직 개발 검증 단계입니다.</p>
         <div class="hero-actions"><a class="button lime" href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a><a class="button ghost" href="#for-worker">근로자로 시작하기</a></div>
-        <p class="hero-note">AI 추천 계산 엔진은 아직 연결되지 않았습니다. 최종 채용은 사람이 결정합니다.</p>
+        <p class="hero-note"><b>정식 매칭 운영 상태</b> · AI 추천 계산 엔진은 아직 연결되지 않았으며, 추천 화면은 시연 예시입니다.</p>
       </div>
       <div class="match-preview" aria-label="추천 인재 시연 예시">
         <em class="demo-badge">${demoDataLabel}</em>
@@ -87,42 +88,42 @@ app.innerHTML = `
         <div class="factors">${demoRecommendation.factors.map((factor) => `<span><b>${factor.value}</b>${factor.label}</span>`).join('')}</div>
         <p><span></span> ${demoRecommendation.reason}</p>
       </div>
-      <div class="hero-index">01 — 04</div>
+      <div class="hero-index">02 — 08</div>
     </section>
 
-    <section class="signal-strip" aria-label="시연용 가상 이용 실적"><p><em class="demo-badge dark">${demoDataLabel}</em>가상의 이용 흐름을<br><strong>한 화면에서 확인하세요.</strong></p>${demoUsageStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
+    <section class="signal-strip" aria-label="시제품 참여 목표"><p><em class="demo-badge dark">목표 수치</em>시제품 참여 목표이며<br><strong>실제 이용 실적이 아닙니다.</strong></p>${prototypeTargetStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
     <section class="section intro" id="how">
-      <div class="section-kicker"><span>01</span><p class="eyebrow">HOW IT WORKS</p></div>
+      <div class="section-kicker"><span>03</span><p class="eyebrow">HOW IT WORKS</p></div>
       <div class="section-heading"><h2>공고부터 첫 출근까지,<br>흐름은 더 단순하게.</h2><p>필요한 조건을 입력하면 추천 근거가 정리됩니다. 제안과 응답, 채용 상태까지 한곳에서 이어집니다.</p></div>
       <div class="steps"><article><span>01</span><i>${icon('briefcase', 26)}</i><h3>조건 입력</h3><p>직무, 지역, 임금과 근무 시간을 입력하는 화면입니다.</p></article><article><span>02</span><i>${icon('spark', 26)}</i><h3>추천 근거 확인</h3><p>현재는 실제 계산이 아닌 시연용 예시를 보여줍니다.</p></article><article><span>03</span><i>${icon('route', 26)}</i><h3>면접 제안</h3><p>면접 일정과 장소를 확인하는 흐름을 시연합니다.</p></article><article><span>04</span><i>${icon('check', 26)}</i><h3>채용 결정</h3><p>자동 결정 없이 고용주가 최종 상태를 선택합니다.</p></article></div>
     </section>
 
     <section class="section prototype-section" id="prototype">
-      <div class="section-kicker"><span>02</span><p class="eyebrow">SERVICE FLOW PROTOTYPE</p></div>
-      <div class="section-heading"><h2>입력부터 결정까지,<br>화면으로 먼저 확인하세요.</h2><p>아래 내용은 저장되지 않는 시연 화면입니다. 실제 회원·예약·공고 데이터와 분리되어 있습니다.</p></div>
+      <div class="section-kicker"><span>04</span><p class="eyebrow">SERVICE FLOW PROTOTYPE</p></div>
+      <div class="section-heading"><h2>입력부터 결정까지,<br>직접 순서대로 시연하세요.</h2><p>조건 입력부터 추천 근거·면접 제안·채용 결정까지 직접 체험할 수 있습니다. 시연 DB는 실제 고객 및 이용 실적과 분리되며, 체험 중 입력값은 저장되지 않습니다.</p></div>
       <div class="prototype-shell"><nav id="prototype-steps" class="prototype-steps" aria-label="시연 단계"></nav><div id="prototype-panel" class="prototype-panel" aria-live="polite"></div></div>
     </section>
 
     <section class="matching-section" id="matching">
-      <div class="matching-copy"><div class="section-kicker"><span>03</span><p class="eyebrow light">RECOMMENDATION UI EXAMPLE</p></div><span class="demo-badge">${demoDataLabel}</span><h2>점수보다 중요한 건,<br><em>왜 맞는지</em>입니다.</h2><p>이 영역은 추천 근거를 어떻게 보여줄지 설명하는 화면 예시입니다. 실제 AI 모델이나 점수 계산은 아직 연결되지 않았습니다.</p><ul><li>${icon('check', 17)} 표시된 점수와 인원은 실제 이용 기록이 아닌 예시</li><li>${icon('check', 17)} 국적·성별·연령은 업무 적합도 점수에서 제외 예정</li><li>${icon('check', 17)} AI에 의한 자동 탈락·자동 채용 금지</li></ul></div>
+      <div class="matching-copy"><div class="section-kicker"><span>05</span><p class="eyebrow light">RECOMMENDATION UI EXAMPLE</p></div><span class="demo-badge">${demoDataLabel}</span><h2>점수보다 중요한 건,<br><em>왜 맞는지</em>입니다.</h2><p>이 영역은 추천 근거를 어떻게 보여줄지 설명하는 화면 예시입니다. 실제 AI 모델이나 점수 계산은 아직 연결되지 않았습니다.</p><ul><li>${icon('check', 17)} 표시된 점수와 인원은 실제 이용 기록이 아닌 예시</li><li>${icon('check', 17)} 국적·성별·연령은 업무 적합도 점수에서 제외 예정</li><li>${icon('check', 17)} AI에 의한 자동 탈락·자동 채용 금지</li></ul></div>
       <div class="score-card"><div class="score-head"><div><span>가상 공고</span><strong>안산 가상 사업장 · 생산 포장</strong></div><b>예시 12명</b></div><div class="candidate"><div class="candidate-main"><span class="avatar blue">홍</span><div><strong>홍길동</strong><small>가상 후보 · 생산·포장</small></div><i>92점</i></div><div class="bar"><span style="width:92%"></span></div></div><div class="score-grid"><div><span>출퇴근 가능성</span><b>91</b><small>시연용 예시값</small></div><div><span>성실성</span><b>96</b><small>시연용 예시값</small></div><div><span>의사소통</span><b>88</b><small>시연용 예시값</small></div><div><span>업무 능력</span><b>92</b><small>시연용 예시값</small></div></div><div class="reason"><span>${icon('spark', 18)}</span><p><b>추천 근거 예시</b>${demoRecommendation.reason}</p></div><small class="model-note">${demoDataLabel} · 실제 AI 계산 결과가 아닙니다.</small></div>
     </section>
 
     <section class="section dual-audience">
-      <div class="section-kicker"><span>04</span><p class="eyebrow">BUILT FOR BOTH</p></div>
+      <div class="section-kicker"><span>06</span><p class="eyebrow">BUILT FOR BOTH</p></div>
       <div class="audience-grid"><article><span class="audience-no">고용주</span><h2>필요한 조건을<br>직접 등록하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 등록·지원자 조회는 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·지원자</li><li>시연 화면: 추천·채용 결정</li></ul><a href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a></article><article id="for-worker"><span class="audience-no">근로자</span><h2>근무조건을 보고<br>직접 지원하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 확인·직접 지원은 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·직접 지원</li><li>시연 화면: 추천·면접 흐름</li></ul><a href="#start">근로자로 시작하기 ${icon('arrow', 18)}</a></article></div>
     </section>
 
     <section class="visa-section" id="visa">
-      <div><div class="section-kicker"><span>05</span><p class="eyebrow light">VISA SUPPORT · PREPARING</p></div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
+      <div><div class="section-kicker"><span>07</span><p class="eyebrow light">VISA SUPPORT · PREPARING</p></div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
       <div class="visa-list"><article><i>${icon('shield', 22)}</i><div><b>체류 자격 확인 화면</b><span>구현·운영 전 검토 필요</span></div></article><article><i>${icon('globe', 22)}</i><div><b>단기 근로 행정 안내</b><span>콘텐츠 및 법률 검토 필요</span></div></article><article><i>${icon('route', 22)}</i><div><b>전문 파트너 연결</b><span>파트너 및 동의 절차 미연결</span></div></article><p>현재 비자 지원 신청은 접수하지 않습니다. 향후 운영 시에도 발급 여부는 관계 기관의 심사 결과에 따라 결정됩니다.</p></div>
     </section>
 
-    <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
+    <section class="section trust" id="trust"><div class="section-kicker"><span>08</span><p class="eyebrow">TRUST PRINCIPLES</p></div><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
   </main>
 
-  <footer><a class="brand" href="#top"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#">개인정보 처리방침</a><a href="#">이용약관</a><a href="#">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
+  <footer><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#">개인정보 처리방침</a><a href="#">이용약관</a><a href="#">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
 `;
 
 const menuButton = document.querySelector('.menu-button');
@@ -169,22 +170,28 @@ function formText(form, name) {
 const prototypeLabels = ['조건 입력', '추천 근거', '면접 제안', '채용 결정'];
 let prototypeStep = 0;
 let prototypeDecision = '';
-let prototypeCondition = { job: '생산·포장', city: '안산시', wage: '12,000원', hours: '09:00~18:00' };
+let prototypeDemoData = null;
+let prototypeCondition = { employer: '', job: '생산·포장', city: '안산시', wage: '12,000원', hours: '09:00~18:00' };
 
 function renderPrototypeFlow() {
   const stepNav = document.querySelector('#prototype-steps');
   const panel = document.querySelector('#prototype-panel');
   if (!stepNav || !panel) return;
+  const demoEmployer = prototypeDemoData?.employers?.find((item) => item.demo_code === prototypeCondition.employer) || prototypeDemoData?.employers?.[0];
+  const demoWorker = prototypeDemoData?.workers?.[0];
+  const demoCountText = prototypeDemoData ? `시연 DB: 가상 고용주 ${prototypeDemoData.employerCount}명 · 가상 근로자 ${prototypeDemoData.workerCount}명` : '시연 DB를 불러오는 중입니다.';
   stepNav.innerHTML = prototypeLabels.map((label, index) => `<button type="button" class="${prototypeStep === index ? 'active' : ''}" data-prototype-step="${index}"><span>0${index + 1}</span>${label}</button>`).join('');
 
   if (prototypeStep === 0) {
-    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">저장되지 않는 시연 입력</span><h3>원하는 근무조건을 입력하세요.</h3><p>입력값은 이 브라우저 화면에서 다음 단계를 보여주는 데만 사용하며 Supabase에 저장하지 않습니다.</p></div><form id="prototype-condition-form" class="prototype-form"><label>직종<input name="job" required value="${escapeHtml(prototypeCondition.job)}"></label><label>지역<input name="city" required value="${escapeHtml(prototypeCondition.city)}"></label><label>희망 임금<input name="wage" required value="${escapeHtml(prototypeCondition.wage)}"></label><label>근무 시간<input name="hours" required value="${escapeHtml(prototypeCondition.hours)}"></label><button class="button lime" type="submit">추천 근거 예시 보기 ${icon('arrow', 17)}</button></form>`;
+    const employerOptions = prototypeDemoData?.employers?.map((item) => `<option value="${escapeHtml(item.demo_code)}" ${item.demo_code === demoEmployer?.demo_code ? 'selected' : ''}>${escapeHtml(item.display_name)} · ${escapeHtml(item.city)}</option>`).join('') || '<option value="">가상 사업장 불러오는 중</option>';
+    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">시연용 가상 데이터 · 실제 고객 아님</span><h3>원하는 근무조건을 입력하세요.</h3><p>실제 서비스와 같은 형태의 별도 시연 DB를 사용합니다. 가상 레코드는 목표 달성이나 실제 이용 실적의 근거가 아닙니다.</p><strong class="prototype-db-status">${escapeHtml(demoCountText)}</strong></div><form id="prototype-condition-form" class="prototype-form"><label>가상 사업장<select name="employer">${employerOptions}</select></label><label>직종<input name="job" required value="${escapeHtml(prototypeCondition.job)}"></label><label>지역<input name="city" required value="${escapeHtml(prototypeCondition.city)}"></label><label>희망 임금<input name="wage" required value="${escapeHtml(prototypeCondition.wage)}"></label><label>근무 시간<input name="hours" required value="${escapeHtml(prototypeCondition.hours)}"></label><button class="button lime" type="submit">추천 근거 예시 보기 ${icon('arrow', 17)}</button></form>`;
   } else if (prototypeStep === 1) {
-    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel} · 실제 계산 아님</span><h3>${escapeHtml(prototypeCondition.city)} ${escapeHtml(prototypeCondition.job)} 추천 예시</h3><p>입력 조건을 화면에 반영한 예시이며, 추천 엔진이나 검증된 평가 데이터에서 계산된 결과가 아닙니다.</p></div><div class="prototype-result"><div class="prototype-person"><span class="avatar">${demoRecommendation.initials}</span><div><b>${demoRecommendation.name}</b><small>가상 후보자</small></div><strong>${demoRecommendation.score}점 <em>예시</em></strong></div><ul>${demoRecommendation.factors.map((factor) => `<li><span>${factor.label}</span><b>${factor.value}</b></li>`).join('')}</ul><p>${demoRecommendation.reason}</p><button class="button lime" type="button" data-next-prototype="2">면접 제안 화면 보기 ${icon('arrow', 17)}</button></div>`;
+    const workerName = demoWorker?.display_name || demoRecommendation.name;
+    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel} · 실제 계산 아님</span><h3>${escapeHtml(demoEmployer?.display_name || '가상 사업장')} 추천 예시</h3><p>${escapeHtml(prototypeCondition.city)} ${escapeHtml(prototypeCondition.job)} 조건을 화면에 반영한 시연입니다. 추천 엔진이나 실제 고객 평가에서 계산한 결과가 아닙니다.</p></div><div class="prototype-result"><div class="prototype-person"><span class="avatar">${escapeHtml(workerName.slice(0, 1))}</span><div><b>${escapeHtml(workerName)}</b><small>${escapeHtml(demoWorker?.demo_code || 'DEMO-W-001')} · 가상 후보자</small></div><strong>${demoRecommendation.score}점 <em>예시</em></strong></div><ul>${demoRecommendation.factors.map((factor) => `<li><span>${factor.label}</span><b>${factor.value}</b></li>`).join('')}</ul><p>${demoRecommendation.reason}</p><button class="button lime" type="button" data-next-prototype="2">면접 제안 화면 보기 ${icon('arrow', 17)}</button></div>`;
   } else if (prototypeStep === 2) {
     panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel}</span><h3>면접 일정을 확인합니다.</h3><p>실제 예약 기능은 로그인 후 이용할 수 있습니다. 이 카드는 면접 제안 흐름만 보여주는 가상 내역입니다.</p></div><div class="prototype-result interview-example"><small>${demoInterview.status}</small><h4>${demoRecommendation.name} · ${escapeHtml(prototypeCondition.job)}</h4><dl><div><dt>일시</dt><dd>${demoInterview.when}</dd></div><div><dt>장소</dt><dd>${demoInterview.location}</dd></div><div><dt>상태</dt><dd>응답 대기 · 예시</dd></div></dl><button class="button lime" type="button" data-next-prototype="3">채용 결정 화면 보기 ${icon('arrow', 17)}</button></div>`;
   } else {
-    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel}</span><h3>고용주가 최종 결정을 선택합니다.</h3><p>AI가 자동으로 채용하거나 탈락시키지 않습니다. 아래 선택은 저장되지 않는 화면 시연입니다.</p></div><div class="prototype-result decision-example"><div><b>${demoRecommendation.name}</b><span>${escapeHtml(prototypeCondition.job)} · 면접 완료 예시</span></div><div class="decision-actions"><button class="button lime" type="button" data-demo-decision="채용 결정 예시를 선택했습니다.">채용 결정 예시</button><button class="button" type="button" data-demo-decision="보류 예시를 선택했습니다.">보류 예시</button></div><p id="prototype-decision" class="form-status success">${escapeHtml(prototypeDecision)}</p></div>`;
+    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel}</span><h3>고용주가 최종 결정을 선택합니다.</h3><p>AI가 자동으로 채용하거나 탈락시키지 않습니다. 아래 선택은 저장되지 않는 화면 시연입니다.</p></div><div class="prototype-result decision-example"><div><b>${escapeHtml(demoWorker?.display_name || demoRecommendation.name)}</b><span>${escapeHtml(prototypeCondition.job)} · 면접 완료 예시</span></div><div class="decision-actions"><button class="button lime" type="button" data-demo-decision="채용 결정 예시를 선택했습니다.">채용 결정 예시</button><button class="button" type="button" data-demo-decision="보류 예시를 선택했습니다.">보류 예시</button></div><p id="prototype-decision" class="form-status success">${escapeHtml(prototypeDecision)}</p><button class="prototype-restart" type="button" data-restart-prototype>처음부터 다시 시연</button></div>`;
   }
 
   stepNav.querySelectorAll('[data-prototype-step]').forEach((button) => button.addEventListener('click', () => {
@@ -195,6 +202,7 @@ function renderPrototypeFlow() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     prototypeCondition = {
+      employer: formText(form, 'employer'),
       job: formText(form, 'job'), city: formText(form, 'city'),
       wage: formText(form, 'wage'), hours: formText(form, 'hours')
     };
@@ -209,9 +217,22 @@ function renderPrototypeFlow() {
     prototypeDecision = button.dataset.demoDecision;
     panel.querySelector('#prototype-decision').textContent = `${prototypeDecision} DB에는 저장하지 않았습니다.`;
   }));
+  panel.querySelector('[data-restart-prototype]')?.addEventListener('click', () => {
+    prototypeStep = 0;
+    prototypeDecision = '';
+    renderPrototypeFlow();
+  });
 }
 
 renderPrototypeFlow();
+loadDemoRecords().then((data) => {
+  prototypeDemoData = data;
+  if (!prototypeCondition.employer) prototypeCondition.employer = data?.employers?.[0]?.demo_code || '';
+  renderPrototypeFlow();
+}).catch(() => {
+  prototypeDemoData = null;
+  renderPrototypeFlow();
+});
 
 function setMemberMessage(message, type = '') {
   const status = memberApp.querySelector('.form-status');
