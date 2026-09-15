@@ -514,6 +514,17 @@ export async function loadDemoRecords() {
   };
 }
 
+export async function loadDemoMarketplace() {
+  if (!supabase) return null;
+  const [employers, workers] = await Promise.all([
+    supabase.from('demo_employers').select('id, demo_code, display_name, city, industry, data_label').order('id').range(0, 199),
+    supabase.from('demo_workers').select('id, demo_code, display_name, city, job_category, experience_months, data_label').order('id').range(0, 199)
+  ]);
+  if (employers.error) throw employers.error;
+  if (workers.error) throw workers.error;
+  return { employers: employers.data ?? [], workers: workers.data ?? [] };
+}
+
 export async function loadServiceLaunchConsole() {
   const client = requireSupabase();
   const [openBeta, cases, events, feedback] = await Promise.all([

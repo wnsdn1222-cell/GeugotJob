@@ -32,6 +32,7 @@ import {
   saveMatchingCriterion,
   saveOperatingCost,
   loadDemoRecords,
+  loadDemoMarketplace,
   loadServiceLaunchConsole,
   loadServiceLaunchMemberData,
   syncServiceCase,
@@ -116,7 +117,7 @@ app.innerHTML = `
 
     <section class="visa-section" id="visa">
       <div><div class="section-kicker"><span>07</span><p class="eyebrow light">VISA SUPPORT · PREPARING</p></div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
-      <div class="visa-list"><article><i>${icon('shield', 22)}</i><div><b>체류 자격 확인 화면</b><span>구현·운영 전 검토 필요</span></div></article><article><i>${icon('globe', 22)}</i><div><b>단기 근로 행정 안내</b><span>콘텐츠 및 법률 검토 필요</span></div></article><article><i>${icon('route', 22)}</i><div><b>전문 파트너 연결</b><span>파트너 및 동의 절차 미연결</span></div></article><p>현재 비자 지원 신청은 접수하지 않습니다. 향후 운영 시에도 발급 여부는 관계 기관의 심사 결과에 따라 결정됩니다.</p></div>
+      <div><div class="visa-list"><article><i>${icon('shield', 22)}</i><div><b>체류 자격 정보 입력</b><span>저장되지 않는 시연</span></div></article><article><i>${icon('globe', 22)}</i><div><b>확인 항목 안내</b><span>실제 취업 가능 판정 아님</span></div></article><article><i>${icon('route', 22)}</i><div><b>전문 파트너 연결</b><span>요청 전송 없는 시연</span></div></article></div><div id="visa-demo" class="visa-demo" aria-live="polite"></div></div>
     </section>
 
     <section class="section trust" id="trust"><div class="section-kicker"><span>08</span><p class="eyebrow">TRUST PRINCIPLES</p></div><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
@@ -233,6 +234,32 @@ loadDemoRecords().then((data) => {
   prototypeDemoData = null;
   renderPrototypeFlow();
 });
+
+let visaDemoStep = 0;
+let visaDemoInput = { visaType: 'E-9 예시', industry: '생산·포장', workPeriod: '3개월 예시' };
+
+function renderVisaDemo() {
+  const panel = document.querySelector('#visa-demo');
+  if (!panel) return;
+  if (visaDemoStep === 0) {
+    panel.innerHTML = `<span class="demo-badge">저장되지 않는 비자 지원 시연</span><h3>체류자격 정보를 입력해 보세요.</h3><p>실제 취업 가능 여부를 판정하거나 신청을 접수하지 않습니다.</p><form id="visa-demo-form"><label>체류자격 유형<select name="visa_type"><option>E-9 예시</option><option>H-2 예시</option><option>기타 유형 예시</option></select></label><label>희망 업종<input name="industry" value="${escapeHtml(visaDemoInput.industry)}"></label><label>희망 근무기간<input name="work_period" value="${escapeHtml(visaDemoInput.workPeriod)}"></label><button class="button lime" type="submit">확인 항목 보기 ${icon('arrow', 17)}</button></form>`;
+  } else if (visaDemoStep === 1) {
+    panel.innerHTML = `<span class="demo-badge">시연 단계 02</span><h3>전문 확인이 필요한 항목입니다.</h3><dl><div><dt>입력 유형</dt><dd>${escapeHtml(visaDemoInput.visaType)}</dd></div><div><dt>희망 업종</dt><dd>${escapeHtml(visaDemoInput.industry)}</dd></div><div><dt>희망 기간</dt><dd>${escapeHtml(visaDemoInput.workPeriod)}</dd></div></dl><p>체류자격별 취업 가능 업종·기간·사업장 조건은 관계 기관 또는 전문 자격자의 확인이 필요합니다.</p><button class="button lime" type="button" data-next-visa>전문 파트너 연결 화면 보기 ${icon('arrow', 17)}</button>`;
+  } else {
+    panel.innerHTML = `<span class="demo-badge">시연 완료</span><h3>연결 요청 화면 예시입니다.</h3><p>실제 파트너에게 정보나 요청을 전송하지 않았으며 어떤 정보도 DB에 저장하지 않았습니다.</p><button class="button ghost" type="button" data-restart-visa>처음부터 다시 시연</button>`;
+  }
+  panel.querySelector('#visa-demo-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    visaDemoInput = { visaType: formText(form, 'visa_type'), industry: formText(form, 'industry'), workPeriod: formText(form, 'work_period') };
+    visaDemoStep = 1;
+    renderVisaDemo();
+  });
+  panel.querySelector('[data-next-visa]')?.addEventListener('click', () => { visaDemoStep = 2; renderVisaDemo(); });
+  panel.querySelector('[data-restart-visa]')?.addEventListener('click', () => { visaDemoStep = 0; renderVisaDemo(); });
+}
+
+renderVisaDemo();
 
 function setMemberMessage(message, type = '') {
   const status = memberApp.querySelector('.form-status');
@@ -556,16 +583,33 @@ function serviceLaunchMemberPanel(data, role) {
   return `<section class="service-launch-console"><div class="compliance-banner"><b>정식 서비스 흐름 준비</b><p>근로계약은 고용주와 근로자가 직접 체결하고, 근무 지시와 임금 지급은 고용주가 수행합니다. 플랫폼은 임금을 보관하거나 대신 지급하지 않습니다.</p></div><div class="beta-records">${rows || '<p class="empty-state">연결된 실제 서비스 건이 없습니다.</p>'}</div>${employerForm}</section>`;
 }
 
+function demoMarketplacePanel(data, role) {
+  if (!data) return '<div class="dashboard-warning"><p><b>시연 명단을 불러오지 못했습니다.</b><br>실제 회원 명단으로 대체하지 않았습니다.</p></div>';
+  const isEmployer = role === 'employer';
+  const records = isEmployer ? data.workers : data.employers;
+  const unit = isEmployer ? '명' : '곳';
+  const title = isEmployer ? '가상 근로자 전체 명단' : '가상 사업장·업종 전체 명단';
+  const cards = records.map((item) => {
+    const detail = isEmployer
+      ? `${item.city} · ${item.job_category} · 가상 경력 ${Number(item.experience_months)}개월`
+      : `${item.city} · ${item.industry}`;
+    const searchable = `${item.display_name} ${detail} ${item.demo_code}`.toLowerCase();
+    return `<article class="demo-market-card" data-demo-market-card data-searchable="${escapeHtml(searchable)}"><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(detail)}</p></article>`;
+  }).join('');
+  return `<section class="demo-marketplace"><div class="demo-market-head"><div><span>시연 DB · 실제 회원 명단 아님</span><h3>${title}</h3><p>목표 달성이나 실제 이용 실적으로 집계되지 않는 가상 인물입니다.</p></div><b>${records.length}${unit}</b></div><label class="demo-market-search">명단 검색<input type="search" data-demo-market-search placeholder="이름, 지역, 업종 검색"></label><div class="demo-market-grid">${cards}</div><p class="demo-market-empty" hidden>검색 결과가 없습니다.</p></section>`;
+}
+
 async function renderDashboard(session) {
   memberApp.innerHTML = '<p class="member-loading">회원 정보와 저장된 데이터를 불러오는 중입니다…</p>';
   try {
-    const [profileResult, reservationsResult, mvpResult, betaResult, openBetaResult, launchResult] = await Promise.allSettled([
+    const [profileResult, reservationsResult, mvpResult, betaResult, openBetaResult, launchResult, demoMarketResult] = await Promise.allSettled([
       getMyProfile(),
       loadReservations(),
       isJobInfoMvpDevelopment ? getMyProfile().then((profile) => loadMvpData(profile.role)) : Promise.resolve(null),
       isClosedBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadClosedBetaConsole() : null) : Promise.resolve(null),
       isOpenBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadOpenBetaConsole() : loadOpenBetaMemberData()) : Promise.resolve(null),
-      isServiceLaunchDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadServiceLaunchConsole() : loadServiceLaunchMemberData()) : Promise.resolve(null)
+      isServiceLaunchDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadServiceLaunchConsole() : loadServiceLaunchMemberData()) : Promise.resolve(null),
+      loadDemoMarketplace()
     ]);
     const fallbackRole = session.user.user_metadata?.role === 'employer' ? 'employer' : 'worker';
     const profile = profileResult.status === 'fulfilled'
@@ -576,6 +620,7 @@ async function renderDashboard(session) {
     const betaData = betaResult.status === 'fulfilled' ? betaResult.value : null;
     const openBetaData = openBetaResult.status === 'fulfilled' ? openBetaResult.value : null;
     const launchData = launchResult.status === 'fulfilled' ? launchResult.value : null;
+    const demoMarketData = demoMarketResult.status === 'fulfilled' ? demoMarketResult.value : null;
     const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected') || (isOpenBetaDevelopment && openBetaResult.status === 'rejected') || (isServiceLaunchDevelopment && launchResult.status === 'rejected');
     const mvpContent = isJobInfoMvpDevelopment
       ? (mvpData ? (profile.role === 'employer' ? employerMvp(profile, mvpData) : workerMvp(profile, mvpData)) : '<div class="dashboard-warning"><p><b>MVP 데이터를 불러오지 못했습니다.</b><br>저장 기능은 실행하지 않았습니다.</p><button type="button" id="retry-mvp">다시 불러오기</button></div>')
@@ -600,6 +645,7 @@ async function renderDashboard(session) {
       ${betaContent}
       ${openBetaContent}
       ${launchContent}
+      ${profile.role === 'admin' ? '' : demoMarketplacePanel(demoMarketData, profile.role)}
       <div class="reservation-grid">
         <form id="reservation-form" class="reservation-form">
           <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
@@ -616,6 +662,18 @@ async function renderDashboard(session) {
     memberApp.querySelector('#sign-out').addEventListener('click', signOut);
     memberApp.querySelector('#retry-dashboard')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('#retry-mvp')?.addEventListener('click', () => renderDashboard(session));
+    memberApp.querySelector('[data-demo-market-search]')?.addEventListener('input', (event) => {
+      const query = event.currentTarget.value.trim().toLowerCase();
+      const cards = [...memberApp.querySelectorAll('[data-demo-market-card]')];
+      let visibleCount = 0;
+      cards.forEach((card) => {
+        const visible = !query || card.dataset.searchable.includes(query);
+        card.hidden = !visible;
+        if (visible) visibleCount += 1;
+      });
+      const empty = memberApp.querySelector('.demo-market-empty');
+      if (empty) empty.hidden = visibleCount !== 0;
+    });
 
     memberApp.querySelector('#employer-profile-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
