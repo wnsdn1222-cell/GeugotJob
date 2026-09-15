@@ -72,7 +72,7 @@ app.innerHTML = `
   <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></div>
 
   <main id="main">
-    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · MEMBER START</p><h2>로그인하고<br>그곳잡을 시작하세요.</h2><p class="start-intro">사이트 공개 배포와 정식 매칭 서비스 운영 상태를 구분해 안내합니다.</p><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
+    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · SERVICE & MEMBER START</p><h2>실제 근무조건과<br>통근 여건을 함께 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span><b>함께</b> 면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
 
     <section class="hero" id="top">
       <img class="hero-photo" src="/hero-workplace.png" alt="물류 현장에서 함께 일하는 고용주와 근로자" />
@@ -124,9 +124,15 @@ app.innerHTML = `
 
     <section class="section trust" id="trust"><div class="section-kicker"><span>08</span><p class="eyebrow">TRUST PRINCIPLES</p></div><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
+    <section class="policy-document" id="privacy-policy" aria-labelledby="privacy-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="privacy-title">개인정보 처리방침</h2><p>그곳잡은 회원가입·로그인, 회원 유형별 서비스 제공과 예약 관리를 위해 필요한 범위의 개인정보를 처리합니다. 아래 내용은 현재 구현을 기준으로 작성한 안내 초안이며, 사업자 정보와 보유기간 등 미확정 항목은 운영 전 확정·고지해야 합니다.</p><h3>현재 처리하는 정보</h3><ul><li>회원가입: 이름, 이메일, 암호화되어 관리되는 인증 정보, 회원 유형</li><li>회원 기능: 고용주 또는 근로자가 직접 입력한 프로필·근무조건·희망조건</li><li>예약 기능: 예약 종류, 일시, 장소와 메모</li></ul><h3>이용 목적과 보관</h3><p>입력 정보는 계정 인증, 회원 기능 제공, 예약 저장·조회에 사용됩니다. 인증과 데이터 저장에는 Supabase가 사용됩니다. 구체적인 보유·파기 기간, 개인정보 처리자 정보, 문의 연락처와 국외 이전 관련 고지는 운영 전 법률 검토를 거쳐 확정해야 합니다.</p><h3>시연 데이터</h3><p>‘시연용 가상 데이터’로 표시된 정보는 실제 회원·이용 실적과 분리되며, 실제 고객의 신원 정보로 표시하지 않습니다.</p></article></section>
+
+    <section class="policy-document" id="terms-of-use" aria-labelledby="terms-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="terms-title">이용약관</h2><p>그곳잡은 고용주가 근무조건을 등록하고 근로자가 이를 확인하는 서비스 흐름을 준비하고 있습니다. 현재 공개 사이트에서 실제 연결된 기능과 개발·시연 기능을 구분해 안내합니다.</p><h3>서비스 이용 원칙</h3><ul><li>회원은 본인의 정확한 정보를 입력하고 계정 정보를 안전하게 관리해야 합니다.</li><li>근로계약은 고용주와 근로자가 직접 체결하며, 근무 지시와 임금 지급도 당사자 사이에서 이루어집니다.</li><li>AI 추천 점수와 시연 후보는 예시이며 자동 채용·자동 탈락을 결정하지 않습니다.</li><li>사업 등록과 운영 기준이 확인되기 전에는 실제 소개 및 고객 청구 기능을 운영하지 않습니다.</li></ul><h3>운영 전 확정이 필요한 사항</h3><p>서비스 운영자 정보, 이용 제한·분쟁 처리 기준, 손해배상과 면책 범위, 약관 시행일은 관련 사업 등록과 법률 검토 후 확정해야 합니다.</p></article></section>
+
+    <section class="policy-document" id="points-policy" aria-labelledby="points-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 정책 확정 필요</p><h2 id="points-title">포인트 정책</h2><p>현재 그곳잡에는 포인트 충전·적립·사용·환불 기능이 연결되어 있지 않습니다. 따라서 회원에게 포인트 잔액이 부여되거나 결제가 청구되지 않습니다.</p><h3>현재 적용 상태</h3><ul><li>포인트 구매 및 결제: 미운영</li><li>포인트 적립 및 사용: 미운영</li><li>포인트 환불 및 소멸: 적용 기준 없음</li><li>19,000원 표기: 임시 검증 가격이며 확정 수수료가 아님</li></ul><p>향후 포인트 기능을 도입할 경우 적립·사용·유효기간·소멸·환불 기준과 시행일을 별도로 확정한 뒤 이용 전에 고지합니다.</p></article></section>
+
   </main>
 
-  <footer><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#">개인정보 처리방침</a><a href="#">이용약관</a><a href="#">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
+  <footer><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#privacy-policy">개인정보 처리방침</a><a href="#terms-of-use">이용약관</a><a href="#points-policy">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
 `;
 
 const menuButton = document.querySelector('.menu-button');
@@ -144,7 +150,7 @@ function toggleMenu(force) {
 menuButton.addEventListener('click', () => toggleMenu());
 mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => toggleMenu(false)));
 const memberApp = document.querySelector('#member-app');
-let authMode = 'login';
+let authMode = 'signup';
 let selectedRole = 'worker';
 let dashboardNotice = '';
 
