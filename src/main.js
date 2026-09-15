@@ -16,12 +16,20 @@ import {
   saveServiceIntent,
   isJobInfoMvpDevelopment,
   isClosedBetaDevelopment,
+  isOpenBetaDevelopment,
   loadClosedBetaConsole,
+  loadOpenBetaConsole,
+  loadOpenBetaMemberData,
   saveClosedBetaParticipant,
   createManualIntroduction,
   saveContractConfirmation,
   savePaymentPreparation,
   saveWorkOutcome,
+  calculateCommuteAssessment,
+  saveWagePaymentResponse,
+  saveReuseIntention,
+  saveMatchingCriterion,
+  saveOperatingCost,
   draftConsentVersion,
   loadReservations,
   createReservation,
@@ -422,14 +430,77 @@ function closedBetaConsole(data) {
   </section>`;
 }
 
+function openBetaAdminConsole(data) {
+  const readiness = data.readiness || {};
+  const introductions = data.introductions || [];
+  const introOptions = introductions.map((item) => `<option value="${item.id}">${escapeHtml(item.id.slice(0, 8))} · ${escapeHtml(item.status)}</option>`).join('');
+  const paidRecords = data.feePayments.filter((item) => item.status === 'paid');
+  const paidTotal = paidRecords.reduce((sum, item) => sum + Number(item.amount_krw || 0), 0);
+  const costTotal = data.operatingCosts.reduce((sum, item) => sum + Number(item.amount_krw || 0), 0);
+  const reuseDecided = data.reuseIntentions.filter((item) => item.response !== 'undecided');
+  const commuteByIntro = new Map(data.commutes.map((item) => [item.introduction_id, item]));
+  const commuteRows = introductions.map((item) => {
+    const commute = commuteByIntro.get(item.id);
+    const result = commute?.status === 'calculated' || commute?.status === 'manual_verified'
+      ? `${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '근거리' : '기준 밖'} (기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km)`
+      : '미판별';
+    return `<article><b>소개 ${escapeHtml(item.id.slice(0, 8))}</b><p>${escapeHtml(result)}</p><button class="button open-beta-distance" data-introduction-id="${item.id}" type="button">거리 판별 실행</button><p class="form-status" role="status"></p></article>`;
+  }).join('');
+  const wageRows = data.wageResponses.map((response) => {
+    const review = data.wageReviews.find((item) => item.response_id === response.id);
+    return `<article><b>${escapeHtml(response.response)}</b><p>근로자 응답 · ${new Date(response.responded_at).toLocaleDateString('ko-KR')}<br>확정 검토: ${escapeHtml(review?.status || '검토 생성 전')}</p></article>`;
+  }).join('');
+  const accessRows = data.accessControls.map((item) => `<article><b>${escapeHtml(item.status)}</b><p>고용주 ${escapeHtml(item.employer_id.slice(0, 8))} · ${item.decision_basis ? escapeHtml(item.decision_basis) : '결정 근거 미입력'}</p></article>`).join('');
+  const criterionRows = data.criteria.map((item) => `<article><b>${escapeHtml(item.criterion_name)}</b><p>${escapeHtml(item.observation)} · ${escapeHtml(item.status)}</p></article>`).join('');
+
+  return `<section class="open-beta-console">
+    <div class="compliance-banner"><b>시제품 2 · 오픈 베타 개발 검증</b><p>실제 데이터만 집계합니다. 거리·미지급 확정·이용 제한·실결제는 필요한 기준과 연동이 확인되기 전까지 잠겨 있습니다.</p></div>
+    <div class="open-beta-readiness">
+      <article><span>거리 판별</span><b>${readiness.commute_method && readiness.nearby_threshold_km ? '설정됨' : '기준 설정 필요'}</b><small>${readiness.commute_method ? escapeHtml(readiness.commute_method) : '계산 방식 미정'} · ${readiness.nearby_threshold_km ? `${Number(readiness.nearby_threshold_km)}km` : '근거리 기준 미정'}</small></article>
+      <article><span>미지급 확정</span><b>${readiness.wage_confirmation_policy_configured ? '기준 설정됨' : '기준 설정 필요'}</b><small>근로자 응답과 운영자 확정 기록을 분리</small></article>
+      <article><span>이용 제한</span><b>${readiness.employer_restriction_policy_configured ? '정책 설정됨' : '정책 설정 필요'}</b><small>확정 미지급 + 정책 버전 없이는 제한 불가</small></article>
+      <article><span>실결제</span><b>${readiness.paid_operations_enabled && readiness.payment_integration_verified ? '연동 확인됨' : '연동 필요'}</b><small>등록 확인·결제 제공자 검증 전 완료 기록 불가</small></article>
+    </div>
+    <div class="open-beta-stats">
+      <article><span>확인된 수수료 결제</span><b>${paidRecords.length ? `${paidRecords.length}건 · ${paidTotal.toLocaleString('ko-KR')}원` : '미집계'}</b></article>
+      <article><span>재이용 응답</span><b>${reuseDecided.length ? `${reuseDecided.length}건` : '미집계'}</b></article>
+      <article><span>운영비용</span><b>${data.operatingCosts.length ? `${costTotal.toLocaleString('ko-KR')}원` : '미집계'}</b></article>
+    </div>
+    <div class="beta-comparison"><div><h4>출퇴근 거리 판별</h4>${commuteRows || '<p>판별할 실제 소개 기록이 없습니다.</p>'}</div><div><h4>급여 응답과 검토 상태</h4>${wageRows || '<p>실제 급여 응답이 없어 미집계입니다.</p>'}</div></div>
+    <div class="beta-comparison"><div><h4>고용주 이용 상태</h4>${accessRows || '<p>제한 또는 검토 기록이 없습니다.</p>'}</div><div><h4>매칭 기준 관찰 기록</h4>${criterionRows || '<p>누적된 실제 관찰 기록이 없습니다.</p>'}</div></div>
+    <div class="beta-admin-grid">
+      <form id="matching-criterion-form" class="mvp-card mvp-form"><div class="card-title"><span>실제 근무 결과 근거</span><h3>매칭 기준 관찰 기록</h3><p>점수를 자동 계산하지 않고 고용주 의견과 근무 결과에서 확인한 사실을 기록합니다.</p></div><label>소개 기록<select name="introduction_id" required><option value="">선택하세요</option>${introOptions}</select></label><label>관찰 항목<input name="criterion_name" maxlength="120" required></label><label>관찰 내용<textarea name="observation" maxlength="2000" rows="3" required></textarea></label><label>검토 상태<select name="status"><option value="observed">관찰</option><option value="candidate">기준 후보</option><option value="approved">승인 기준</option></select></label><button class="button" type="submit" ${introductions.length ? '' : 'disabled'}>관찰 기록 저장</button><p class="form-status" role="status"></p></form>
+      <form id="operating-cost-form" class="mvp-card mvp-form"><div class="card-title"><span>실제 지출만 기록</span><h3>운영비용 기록</h3></div><label>지출일<input type="date" name="cost_date" required></label><label>항목<input name="category" maxlength="100" required></label><label>금액(원)<input type="number" name="amount_krw" min="1" required></label><label>설명<textarea name="description" maxlength="1000" rows="2"></textarea></label><label>증빙 참조<input name="evidence_reference" maxlength="1000"></label><button class="button" type="submit">실제 비용 기록</button><p class="form-status" role="status"></p></form>
+    </div>
+    <p class="beta-criteria-note">실제 수수료 결제 기록 테이블은 준비됐지만 사업 등록과 서버 측 결제 제공자·웹훅 검증이 없어 결제 완료 입력은 잠겨 있습니다. 근로자의 미지급 응답은 신고가 아니라 응답 기록이며 자동 제재 근거가 아닙니다.</p>
+  </section>`;
+}
+
+function openBetaMemberPanel(data, role) {
+  const introCards = data.introductions.map((item) => {
+    const job = oneRelation(item.job) || {};
+    const outcome = oneRelation(item.outcome);
+    const commute = oneRelation(item.commute);
+    const wage = oneRelation(item.wage);
+    const review = oneRelation(wage?.review);
+    const ended = ['completed', 'ended_early'].includes(outcome?.contract_outcome);
+    const commuteText = commute && ['calculated', 'manual_verified'].includes(commute.status)
+      ? `${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '근거리' : '기준 밖'} (판별 기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km)`
+      : '아직 판별되지 않음';
+    return `<article class="beta-record"><div class="beta-record-head"><div><span>실제 소개 기록</span><h4>${escapeHtml(job.company_name || '사업장')} · ${escapeHtml(job.title || '공고')}</h4></div><b>${escapeHtml(item.status)}</b></div><p><strong>출퇴근 거리</strong>${escapeHtml(commuteText)}</p><p><strong>근무 결과</strong>${escapeHtml(outcome?.contract_outcome || '미확인')}</p>${role === 'worker' ? `<form class="wage-response-form" data-introduction-id="${item.id}" data-worker-id="${item.worker_id}"><h5>근무 종료 후 급여 지급 여부</h5><label>응답<select name="response"><option value="unknown">확인 중</option><option value="paid" ${wage?.response === 'paid' ? 'selected' : ''}>지급됨</option><option value="partially_paid" ${wage?.response === 'partially_paid' ? 'selected' : ''}>일부 지급</option><option value="not_paid" ${wage?.response === 'not_paid' ? 'selected' : ''}>미지급</option></select></label><label>메모<textarea name="response_note" maxlength="2000" rows="2">${escapeHtml(wage?.response_note || '')}</textarea></label><button class="button" type="submit" ${ended ? '' : 'disabled'}>${wage ? '응답 수정' : '응답 저장'}</button><small>${ended ? `운영자 검토 상태: ${escapeHtml(review?.status || '검토 생성 전')}` : '근무 종료 결과가 기록된 뒤 응답할 수 있습니다.'}</small><p class="form-status" role="status"></p></form>` : ''}</article>`;
+  }).join('');
+  return `<section class="open-beta-console"><div class="compliance-banner"><b>시제품 2 · 실제 기록 영역</b><p>표시된 거리와 상태는 Supabase에 저장된 실제 기록만 사용합니다. 없는 값은 미판별 또는 미확인으로 표시합니다.</p></div><div class="beta-records">${introCards || '<p class="empty-state">연결된 실제 소개 기록이 없습니다.</p>'}</div><form id="reuse-intention-form" class="mvp-card mvp-form"><div class="card-title"><span>서비스 이용 의향</span><h3>재이용 여부 기록</h3></div><label>관련 소개<select name="introduction_id"><option value="">전체 서비스</option>${data.introductions.map((item) => `<option value="${item.id}">${escapeHtml(item.id.slice(0, 8))}</option>`).join('')}</select></label><label>재이용 의향<select name="response"><option value="undecided">미정</option><option value="yes">재이용 의향 있음</option><option value="no">재이용 의향 없음</option></select></label><label>의견<textarea name="response_note" maxlength="1000" rows="2"></textarea></label><button class="button" type="submit">실제 응답 저장</button><p class="form-status" role="status"></p></form></section>`;
+}
+
 async function renderDashboard(session) {
   memberApp.innerHTML = '<p class="member-loading">회원 정보와 저장된 데이터를 불러오는 중입니다…</p>';
   try {
-    const [profileResult, reservationsResult, mvpResult, betaResult] = await Promise.allSettled([
+    const [profileResult, reservationsResult, mvpResult, betaResult, openBetaResult] = await Promise.allSettled([
       getMyProfile(),
       loadReservations(),
       isJobInfoMvpDevelopment ? getMyProfile().then((profile) => loadMvpData(profile.role)) : Promise.resolve(null),
-      isClosedBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadClosedBetaConsole() : null) : Promise.resolve(null)
+      isClosedBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadClosedBetaConsole() : null) : Promise.resolve(null),
+      isOpenBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadOpenBetaConsole() : loadOpenBetaMemberData()) : Promise.resolve(null)
     ]);
     const fallbackRole = session.user.user_metadata?.role === 'employer' ? 'employer' : 'worker';
     const profile = profileResult.status === 'fulfilled'
@@ -438,13 +509,17 @@ async function renderDashboard(session) {
     const reservations = reservationsResult.status === 'fulfilled' ? reservationsResult.value : [];
     const mvpData = mvpResult.status === 'fulfilled' ? mvpResult.value : null;
     const betaData = betaResult.status === 'fulfilled' ? betaResult.value : null;
-    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected');
+    const openBetaData = openBetaResult.status === 'fulfilled' ? openBetaResult.value : null;
+    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected') || (isOpenBetaDevelopment && openBetaResult.status === 'rejected');
     const mvpContent = isJobInfoMvpDevelopment
       ? (mvpData ? (profile.role === 'employer' ? employerMvp(profile, mvpData) : workerMvp(profile, mvpData)) : '<div class="dashboard-warning"><p><b>MVP 데이터를 불러오지 못했습니다.</b><br>저장 기능은 실행하지 않았습니다.</p><button type="button" id="retry-mvp">다시 불러오기</button></div>')
       : '<div class="compliance-banner locked"><b>직업정보 MVP 준비 완료 · 운영 잠금</b><p>직업정보제공사업 신고 완료가 확인되기 전에는 공고 등록·지원·직접 연락 기능을 운영하지 않습니다. 개발 환경에서만 기능을 검증할 수 있습니다.</p></div>';
     const betaContent = isClosedBetaDevelopment && profile.role === 'admin'
       ? (betaData ? closedBetaConsole(betaData) : '<div class="dashboard-warning"><p><b>클로즈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
       : '<div class="compliance-banner locked"><b>시제품 1 클로즈 베타 · 운영 잠금</b><p>유료직업소개사업 등록 완료가 확인되지 않았습니다. 실제 소개와 고객 청구는 활성화하지 않으며 관리자 개발 환경에서만 수동 흐름을 검증합니다.</p></div>';
+    const openBetaContent = isOpenBetaDevelopment
+      ? (openBetaData ? (profile.role === 'admin' ? openBetaAdminConsole(openBetaData) : openBetaMemberPanel(openBetaData, profile.role)) : '<div class="dashboard-warning"><p><b>오픈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
+      : '<div class="compliance-banner locked"><b>시제품 2 오픈 베타 · 운영 잠금</b><p>근거리 기준, 미지급 확정·이용 제한 정책, 유료직업소개사업 등록과 실결제 연동이 확인되지 않았습니다. 실제 데이터 구조는 준비됐지만 운영 기능은 활성화하지 않습니다.</p></div>';
     const notice = dashboardNotice;
     dashboardNotice = '';
     const roleLabel = profile.role === 'admin' ? '운영자' : profile.role === 'employer' ? '고용주' : '근로자';
@@ -454,6 +529,7 @@ async function renderDashboard(session) {
       ${hasLoadWarning ? '<div class="dashboard-warning"><p><b>로그인은 정상적으로 완료되었습니다.</b><br>일부 정보를 잠시 불러오지 못했습니다.</p><button type="button" id="retry-dashboard">다시 불러오기</button></div>' : ''}
       ${mvpContent}
       ${betaContent}
+      ${openBetaContent}
       <div class="reservation-grid">
         <form id="reservation-form" class="reservation-form">
           <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
@@ -700,6 +776,86 @@ async function renderDashboard(session) {
         button.disabled = false;
       }
     }));
+
+    memberApp.querySelectorAll('.open-beta-distance').forEach((button) => button.addEventListener('click', async () => {
+      const status = button.parentElement.querySelector('.form-status');
+      button.disabled = true;
+      status.textContent = '설정과 좌표를 확인하는 중입니다…';
+      try {
+        await calculateCommuteAssessment(button.dataset.introductionId);
+        dashboardNotice = '설정된 계산 방식과 기준으로 거리를 판별해 DB에 저장했습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        status.textContent = `판별되지 않았습니다: ${error.message}`;
+        status.className = 'form-status error';
+        button.disabled = false;
+      }
+    }));
+
+    memberApp.querySelectorAll('.wage-response-form').forEach((wageForm) => wageForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      setFormMessage(element, '급여 지급 여부 응답을 저장하는 중입니다…');
+      try {
+        await saveWagePaymentResponse({ introductionId: element.dataset.introductionId, workerId: element.dataset.workerId, response: formText(form, 'response'), responseNote: formText(form, 'response_note') });
+        dashboardNotice = '근로자의 급여 지급 여부 응답이 DB에 저장되었습니다. 미지급 확정이나 이용 제한으로 자동 처리되지 않습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    }));
+
+    memberApp.querySelector('#reuse-intention-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveReuseIntention({ introductionId: formText(form, 'introduction_id'), response: formText(form, 'response'), responseNote: formText(form, 'response_note') });
+        dashboardNotice = '재이용 여부 응답이 실제 기록으로 DB에 저장되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
+
+    memberApp.querySelector('#matching-criterion-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveMatchingCriterion({ introductionId: formText(form, 'introduction_id'), criterionName: formText(form, 'criterion_name'), observation: formText(form, 'observation'), status: formText(form, 'status') });
+        dashboardNotice = '실제 소개·근무 결과에 근거한 매칭 기준 관찰 기록이 DB에 저장되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
+
+    memberApp.querySelector('#operating-cost-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveOperatingCost({ costDate: formText(form, 'cost_date'), category: formText(form, 'category'), amountKrw: Number(form.get('amount_krw')), description: formText(form, 'description'), evidenceReference: formText(form, 'evidence_reference') });
+        dashboardNotice = '입력한 실제 운영비용이 DB에 저장되고 집계에 반영되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
 
     memberApp.querySelector('#reservation-form').addEventListener('submit', async (event) => {
       event.preventDefault();

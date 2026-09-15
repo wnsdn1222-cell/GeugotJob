@@ -82,6 +82,26 @@ VITE_CLOSED_BETA_MODE=development
   화면마다 `시연용 가상 데이터`로 표시합니다.
 - AI 추천 계산 엔진과 비자 지원 접수는 아직 실제 기능으로 연결되지 않았습니다.
 
+## 시제품 2 오픈 베타
+
+관리자 또는 참여 회원의 개발 환경에서만 아래 값을 추가해 실제 기록 화면을 활성화합니다.
+
+```text
+VITE_OPEN_BETA_MODE=development
+```
+
+- 사업장·근로자 좌표와 관리자가 확정한 계산 방식·근거리 기준이 모두 있을 때만 거리 판별
+- 근무 종료 결과(`completed` 또는 `ended_early`)가 기록된 뒤 근로자의 급여 지급 여부 응답 저장
+- 근로자 응답과 운영자의 미지급 확정 검토를 분리하고, 확정 정책 버전 없이는 확정 불가
+- 확정 미지급 검토와 이용 제한 정책 버전·결정 근거가 모두 있어야만 고용주 제한 가능
+- 고용주 의견과 실제 근무 결과에서 확인한 매칭 기준 관찰 기록
+- 실제 수수료 결제, 재이용 응답, 실제 운영비용을 각각 별도 기록하고 실제 행만 집계
+
+현재 근거리 기준·거리 계산 방식, 미지급 확정 기준, 고용주 이용 제한 정책이 확정되지 않아
+DB 설정값은 비어 있습니다. 결제 제공자와 서버 웹훅도 연결되지 않았고 사업 등록 확인 상태가
+잠겨 있으므로 수수료 `paid` 완료 기록은 거부됩니다. 데이터가 없는 성과 항목은 `미집계`로
+표시하며 예시값으로 채우지 않습니다.
+
 ## Vercel 배포
 
 GitHub 저장소를 Vercel에 연결한 뒤 아래 환경 변수를 Preview/Production에 각각 등록합니다.
@@ -91,6 +111,7 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
 VITE_JOB_INFO_MVP_MODE=disabled
 VITE_CLOSED_BETA_MODE=disabled
+VITE_OPEN_BETA_MODE=disabled
 ```
 
 빌드 명령은 `npm run build`, 출력 디렉터리는 `dist`입니다. `vercel.json`에 SPA 라우팅, 서비스 워커 캐시 제어, 기본 보안 헤더가 포함되어 있습니다.

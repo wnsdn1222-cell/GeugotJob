@@ -6,6 +6,7 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const isSupabaseConfigured = Boolean(url && publishableKey && !url.includes('YOUR_PROJECT'));
 export const isJobInfoMvpDevelopment = import.meta.env.VITE_JOB_INFO_MVP_MODE === 'development';
 export const isClosedBetaDevelopment = import.meta.env.VITE_CLOSED_BETA_MODE === 'development';
+export const isOpenBetaDevelopment = import.meta.env.VITE_OPEN_BETA_MODE === 'development';
 export const draftConsentVersion = 'mvp-draft-2026-09-15';
 
 export const supabase = isSupabaseConfigured
@@ -388,6 +389,110 @@ export async function saveWorkOutcome(values) {
     recorded_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }, { onConflict: 'introduction_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadOpenBetaConsole() {
+  const client = requireSupabase();
+  const [closedBeta, readiness, commutes, wageResponses, wageReviews, accessControls, criteria, feePayments, reuseIntentions, operatingCosts] = await Promise.all([
+    loadClosedBetaConsole(),
+    client.rpc('get_open_beta_readiness'),
+    client.from('commute_assessments').select('id, introduction_id, distance_method, distance_km, nearby_threshold_km, is_nearby, status, evidence_note, assessed_at'),
+    client.from('wage_payment_responses').select('id, introduction_id, worker_id, response, response_note, responded_at, updated_at'),
+    client.from('wage_incident_reviews').select('id, response_id, status, review_basis, policy_version, reviewed_at, created_at'),
+    client.from('employer_access_controls').select('employer_id, status, related_review_id, policy_version, decision_basis, decided_at, updated_at'),
+    client.from('matching_criterion_records').select('id, introduction_id, criterion_name, observation, status, created_at').order('created_at', { ascending: false }),
+    client.from('fee_payment_records').select('id, introduction_id, payer_profile_id, amount_krw, status, provider_name, external_payment_id, paid_at, created_at').order('created_at', { ascending: false }),
+    client.from('reuse_intentions').select('id, profile_id, introduction_id, response, response_note, responded_at').order('responded_at', { ascending: false }),
+    client.from('operating_costs').select('id, cost_date, category, amount_krw, description, evidence_reference, created_at').order('cost_date', { ascending: false })
+  ]);
+  for (const result of [readiness, commutes, wageResponses, wageReviews, accessControls, criteria, feePayments, reuseIntentions, operatingCosts]) {
+    if (result.error) throw result.error;
+  }
+  return {
+    ...closedBeta,
+    readiness: readiness.data ?? {},
+    commutes: commutes.data ?? [], wageResponses: wageResponses.data ?? [],
+    wageReviews: wageReviews.data ?? [], accessControls: accessControls.data ?? [],
+    criteria: criteria.data ?? [], feePayments: feePayments.data ?? [],
+    reuseIntentions: reuseIntentions.data ?? [], operatingCosts: operatingCosts.data ?? []
+  };
+}
+
+export async function loadOpenBetaMemberData() {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const [{ data: worker, error: workerError }, { data: introductions, error: introductionError }, { data: reuseIntentions, error: reuseError }] = await Promise.all([
+    client.from('workers').select('id').eq('profile_id', user.id).maybeSingle(),
+    client.from('manual_introductions').select('id, worker_id, status, created_at, job:job_postings!manual_introductions_job_posting_id_fkey(title, company_name), outcome:work_outcomes(contract_outcome), commute:commute_assessments(distance_km, nearby_threshold_km, is_nearby, status), wage:wage_payment_responses(id, response, response_note, responded_at, review:wage_incident_reviews(status))').order('created_at', { ascending: false }),
+    client.from('reuse_intentions').select('id, introduction_id, response, response_note, responded_at').eq('profile_id', user.id).order('responded_at', { ascending: false })
+  ]);
+  if (workerError) throw workerError;
+  if (introductionError) throw introductionError;
+  if (reuseError) throw reuseError;
+  return { worker, introductions: introductions ?? [], reuseIntentions: reuseIntentions ?? [] };
+}
+
+export async function calculateCommuteAssessment(introductionId) {
+  const client = requireSupabase();
+  const { data, error } = await client.rpc('calculate_commute_assessment', { p_introduction_id: introductionId });
+  if (error) throw error;
+  return data;
+}
+
+export async function saveWagePaymentResponse({ introductionId, workerId, response, responseNote }) {
+  const client = requireSupabase();
+  const { data, error } = await client.from('wage_payment_responses').upsert({
+    introduction_id: introductionId,
+    worker_id: workerId,
+    response,
+    response_note: responseNote || null,
+    responded_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'introduction_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveReuseIntention({ introductionId, response, responseNote }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('reuse_intentions').insert({
+    profile_id: user.id,
+    introduction_id: introductionId || null,
+    response,
+    response_note: responseNote || null
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveMatchingCriterion({ introductionId, criterionName, observation, status }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('matching_criterion_records').insert({
+    introduction_id: introductionId,
+    criterion_name: criterionName,
+    observation,
+    status,
+    recorded_by: user.id
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveOperatingCost({ costDate, category, amountKrw, description, evidenceReference }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('operating_costs').insert({
+    cost_date: costDate,
+    category,
+    amount_krw: amountKrw,
+    description: description || null,
+    evidence_reference: evidenceReference || null,
+    recorded_by: user.id
+  }).select().single();
   if (error) throw error;
   return data;
 }
