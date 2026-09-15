@@ -4,6 +4,8 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const isSupabaseConfigured = Boolean(url && publishableKey && !url.includes('YOUR_PROJECT'));
+export const isJobInfoMvpDevelopment = import.meta.env.VITE_JOB_INFO_MVP_MODE === 'development';
+export const draftConsentVersion = 'mvp-draft-2026-09-15';
 
 export const supabase = isSupabaseConfigured
   ? createClient(url, publishableKey, {
@@ -14,6 +16,27 @@ export const supabase = isSupabaseConfigured
 function requireSupabase() {
   if (!supabase) throw new Error('Supabase 환경 변수가 설정되지 않았습니다.');
   return supabase;
+}
+
+async function getCurrentUser() {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user) throw error ?? new Error('로그인이 필요합니다.');
+  return data.user;
+}
+
+async function recordConsent(consentType) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('consent_records').insert({
+    user_id: user.id,
+    consent_type: consentType,
+    document_version: draftConsentVersion,
+    is_draft: true,
+    operating_mode: 'development'
+  }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
 
 async function retryJwtClockSkew(operation, attempts = 3) {
@@ -64,6 +87,165 @@ export async function getMyProfile() {
     if (error) throw error;
     return data;
   });
+}
+
+export async function loadMvpData(role) {
+  const client = requireSupabase();
+  if (role === 'employer') {
+    const [companyResult, jobsResult, intentsResult] = await Promise.all([
+      client.from('employers').select('id, company_name, business_number, city, contact_name, contact_email, contact_phone, workplace_address').maybeSingle(),
+      client.from('job_postings').select('id, title, job_category, city, company_name, workplace_address, employment_type, work_days, work_hours, wage_type, wage_amount, wage_notes, headcount, starts_on, ends_on, description, publication_status, operating_mode, created_at, applications:job_applications(id, applicant_name, contact_email, contact_phone, message, status, created_at)').order('created_at', { ascending: false }),
+      client.from('service_intents').select('id, needs, usage_intent, preferred_contact, created_at').order('created_at', { ascending: false })
+    ]);
+    if (companyResult.error) throw companyResult.error;
+    if (jobsResult.error) throw jobsResult.error;
+    if (intentsResult.error) throw intentsResult.error;
+    return { role, details: companyResult.data, jobs: jobsResult.data ?? [], applications: [], contacts: [], intents: intentsResult.data ?? [] };
+  }
+
+  const [workerResult, jobsResult, applicationsResult, contactsResult, intentsResult] = await Promise.all([
+    client.from('workers').select('id, nationality, job_category, city, experience_months, availability_date, contact_email, contact_phone, experience_summary, desired_conditions').maybeSingle(),
+    client.from('job_postings').select('id, title, job_category, city, company_name, workplace_address, employment_type, work_days, work_hours, wage_type, wage_amount, wage_notes, headcount, starts_on, ends_on, description, publication_status, operating_mode, created_at').eq('publication_status', 'published').eq('is_active', true).order('created_at', { ascending: false }),
+    client.from('job_applications').select('id, job_posting_id, message, status, created_at').order('created_at', { ascending: false }),
+    client.from('job_contacts').select('job_posting_id, contact_name, contact_email, contact_phone, preferred_channel'),
+    client.from('service_intents').select('id, needs, usage_intent, preferred_contact, created_at').order('created_at', { ascending: false })
+  ]);
+  for (const result of [workerResult, jobsResult, applicationsResult, contactsResult, intentsResult]) {
+    if (result.error) throw result.error;
+  }
+  return {
+    role,
+    details: workerResult.data,
+    jobs: jobsResult.data ?? [],
+    applications: applicationsResult.data ?? [],
+    contacts: contactsResult.data ?? [],
+    intents: intentsResult.data ?? []
+  };
+}
+
+export async function saveEmployerProfile(values) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  await recordConsent('profile_storage');
+  await recordConsent('employer_contact_disclosure');
+  const { error: profileError } = await client.from('profiles').update({
+    full_name: values.full_name,
+    phone: values.contact_phone || null,
+    updated_at: new Date().toISOString()
+  }).eq('id', user.id);
+  if (profileError) throw profileError;
+  const { data, error } = await client.from('employers').upsert({
+    profile_id: user.id,
+    company_name: values.company_name,
+    business_number: values.business_number || null,
+    city: values.city || null,
+    contact_name: values.contact_name,
+    contact_email: values.contact_email || null,
+    contact_phone: values.contact_phone || null,
+    workplace_address: values.workplace_address || null,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'profile_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveWorkerProfile(values) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  await recordConsent('profile_storage');
+  const { error: profileError } = await client.from('profiles').update({
+    full_name: values.full_name,
+    phone: values.contact_phone || null,
+    updated_at: new Date().toISOString()
+  }).eq('id', user.id);
+  if (profileError) throw profileError;
+  const { data, error } = await client.from('workers').upsert({
+    profile_id: user.id,
+    nationality: values.nationality,
+    job_category: values.job_category,
+    city: values.city,
+    experience_months: values.experience_months,
+    availability_date: values.availability_date || null,
+    contact_email: values.contact_email || null,
+    contact_phone: values.contact_phone || null,
+    experience_summary: values.experience_summary || null,
+    desired_conditions: values.desired_conditions || null
+  }, { onConflict: 'profile_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createJobPosting(values) {
+  const client = requireSupabase();
+  const consentRecordId = await recordConsent('employer_contact_disclosure');
+  const { data, error } = await client.rpc('create_job_posting_with_contact', {
+    p_title: values.title,
+    p_job_category: values.job_category,
+    p_city: values.city,
+    p_company_name: values.company_name,
+    p_workplace_address: values.workplace_address,
+    p_employment_type: values.employment_type,
+    p_work_days: values.work_days,
+    p_work_hours: values.work_hours,
+    p_wage_type: values.wage_type,
+    p_wage_amount: values.wage_amount,
+    p_wage_notes: values.wage_notes || '',
+    p_headcount: values.headcount,
+    p_starts_on: values.starts_on || null,
+    p_ends_on: values.ends_on || null,
+    p_description: values.description || '',
+    p_contact_name: values.contact_name,
+    p_contact_email: values.contact_email || '',
+    p_contact_phone: values.contact_phone || '',
+    p_preferred_channel: values.preferred_channel,
+    p_consent_record_id: consentRecordId,
+    p_operating_mode: 'development'
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function applyToJob({ jobPostingId, workerId, message, contactEmail, contactPhone }) {
+  const client = requireSupabase();
+  const consentRecordId = await recordConsent('application_sharing');
+  const { data, error } = await client.from('job_applications').insert({
+    job_posting_id: jobPostingId,
+    worker_id: workerId,
+    applicant_name: '지원자',
+    message: message || null,
+    contact_email: contactEmail || null,
+    contact_phone: contactPhone || null,
+    consent_record_id: consentRecordId
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function logDirectContact(applicationId, channel) {
+  const client = requireSupabase();
+  const { data, error } = await client.from('contact_events').insert({
+    application_id: applicationId,
+    channel
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveServiceIntent({ role, needs, usageIntent, preferredContact }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const consentRecordId = await recordConsent('service_intent');
+  const { data, error } = await client.from('service_intents').insert({
+    user_id: user.id,
+    audience: role,
+    needs,
+    usage_intent: usageIntent,
+    preferred_contact: preferredContact,
+    consent_record_id: consentRecordId,
+    operating_mode: 'development'
+  }).select().single();
+  if (error) throw error;
+  return data;
 }
 
 export async function loadReservations() {
