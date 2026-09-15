@@ -1,8 +1,8 @@
 export const demoDataLabel = '시연용 가상 데이터';
 
 export const demoUsageStats = [
-  { value: '24곳', label: '가상 고용주' },
-  { value: '86명', label: '가상 근로자' },
+  { value: '200곳', label: '가상 고용주' },
+  { value: '30명', label: '가상 근로자' },
   { value: '31건', label: '가상 지원 내역' }
 ];
 
