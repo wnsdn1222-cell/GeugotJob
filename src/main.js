@@ -128,7 +128,7 @@ app.innerHTML = `
 
     <section class="policy-document" id="terms-of-use" aria-labelledby="terms-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="terms-title">이용약관</h2><p>그곳잡은 고용주가 근무조건을 등록하고 근로자가 이를 확인하는 서비스 흐름을 준비하고 있습니다. 현재 공개 사이트에서 실제 연결된 기능과 개발·시연 기능을 구분해 안내합니다.</p><h3>서비스 이용 원칙</h3><ul><li>회원은 본인의 정확한 정보를 입력하고 계정 정보를 안전하게 관리해야 합니다.</li><li>근로계약은 고용주와 근로자가 직접 체결하며, 근무 지시와 임금 지급도 당사자 사이에서 이루어집니다.</li><li>AI 추천 점수와 시연 후보는 예시이며 자동 채용·자동 탈락을 결정하지 않습니다.</li><li>사업 등록과 운영 기준이 확인되기 전에는 실제 소개 및 고객 청구 기능을 운영하지 않습니다.</li></ul><h3>운영 전 확정이 필요한 사항</h3><p>서비스 운영자 정보, 이용 제한·분쟁 처리 기준, 손해배상과 면책 범위, 약관 시행일은 관련 사업 등록과 법률 검토 후 확정해야 합니다.</p></article></section>
 
-    <section class="policy-document" id="points-policy" aria-labelledby="points-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 정책 확정 필요</p><h2 id="points-title">포인트 정책</h2><p>현재 그곳잡에는 포인트 충전·적립·사용·환불 기능이 연결되어 있지 않습니다. 따라서 회원에게 포인트 잔액이 부여되거나 결제가 청구되지 않습니다.</p><h3>현재 적용 상태</h3><ul><li>포인트 구매 및 결제: 미운영</li><li>포인트 적립 및 사용: 미운영</li><li>포인트 환불 및 소멸: 적용 기준 없음</li><li>19,000원 표기: 임시 검증 가격이며 확정 수수료가 아님</li></ul><p>향후 포인트 기능을 도입할 경우 적립·사용·유효기간·소멸·환불 기준과 시행일을 별도로 확정한 뒤 이용 전에 고지합니다.</p></article></section>
+    <section class="policy-document" id="points-policy" aria-labelledby="points-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">사업 확장 단계 도입 예정 · 정책 확정 필요</p><h2 id="points-title">포인트 정책</h2><p>포인트 제도는 현재 운영하지 않으며, 서비스와 사업을 확장하는 단계에서 도입할 예정입니다. 지금은 포인트 충전·적립·사용·환불 기능이 연결되어 있지 않아 회원에게 포인트 잔액이 부여되거나 결제가 청구되지 않습니다.</p><h3>현재 적용 상태</h3><ul><li>도입 시점: 향후 사업 확장 단계</li><li>포인트 구매 및 결제: 현재 미운영</li><li>포인트 적립 및 사용: 현재 미운영</li><li>포인트 환불 및 소멸: 적용 기준 없음</li><li>19,000원 표기: 임시 검증 가격이며 확정 수수료가 아님</li></ul><p>포인트 기능을 도입하기 전 적립·사용·유효기간·소멸·환불 기준과 시행일을 별도로 확정하고, 회원이 이용하기 전에 안내합니다.</p></article></section>
 
   </main>
 
@@ -149,6 +149,80 @@ function toggleMenu(force) {
 
 menuButton.addEventListener('click', () => toggleMenu());
 mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => toggleMenu(false)));
+
+const navigableScreens = [...document.querySelectorAll('main > section')];
+
+function screenIndexFor(element) {
+  const screen = element.closest('main > section');
+  return navigableScreens.indexOf(screen);
+}
+
+function currentScreenIndex() {
+  const viewportMiddle = window.innerHeight / 2;
+  return navigableScreens.reduce((closest, screen, index) => {
+    if (getComputedStyle(screen).display === 'none') return closest;
+    const bounds = screen.getBoundingClientRect();
+    const distance = Math.abs(bounds.top + (bounds.height / 2) - viewportMiddle);
+    return distance < closest.distance ? { index, distance } : closest;
+  }, { index: 0, distance: Number.POSITIVE_INFINITY }).index;
+}
+
+function commitHashNavigation(target, hash) {
+  const root = document.documentElement;
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  document.querySelectorAll('.policy-document').forEach((documentSection) => {
+    documentSection.classList.toggle('policy-open', documentSection === target);
+  });
+  window.history.pushState(null, '', hash);
+  target.scrollIntoView({ block: 'start', inline: 'start' });
+  window.requestAnimationFrame(() => { root.style.scrollBehavior = previousScrollBehavior; });
+}
+
+function syncPolicyDocumentFromHash() {
+  document.querySelectorAll('.policy-document').forEach((documentSection) => {
+    documentSection.classList.toggle('policy-open', `#${documentSection.id}` === window.location.hash);
+  });
+}
+
+window.addEventListener('popstate', syncPolicyDocumentFromHash);
+
+function navigateSideways(target, hash) {
+  const root = document.documentElement;
+  const targetScreenIndex = screenIndexFor(target);
+  const currentHashTarget = window.location.hash ? document.querySelector(window.location.hash) : null;
+  const sourceScreenIndex = currentHashTarget ? screenIndexFor(currentHashTarget) : currentScreenIndex();
+  const forward = targetScreenIndex >= sourceScreenIndex;
+  const direction = forward ? 'forward' : 'backward';
+  root.dataset.navigationDirection = direction;
+  root.dataset.lastNavigationDirection = direction;
+  const update = () => commitHashNavigation(target, hash);
+
+  if (typeof document.startViewTransition === 'function') {
+    const transition = document.startViewTransition(update);
+    transition.finished.finally(() => { delete root.dataset.navigationDirection; });
+    return;
+  }
+
+  const outgoingX = forward ? '-18vw' : '18vw';
+  const incomingX = forward ? '18vw' : '-18vw';
+  app.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${outgoingX})` }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).finished.then(() => {
+    update();
+    return app.animate([{ opacity: 0, transform: `translateX(${incomingX})` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 240, easing: 'ease-out', fill: 'both' }).finished;
+  }).finally(() => { delete root.dataset.navigationDirection; });
+}
+
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const hash = link.getAttribute('href');
+  if (!hash || hash === '#') return;
+  const target = document.querySelector(hash);
+  if (!target) return;
+  event.preventDefault();
+  navigateSideways(target, hash);
+});
+
 const memberApp = document.querySelector('#member-app');
 let authMode = 'signup';
 let selectedRole = 'worker';
