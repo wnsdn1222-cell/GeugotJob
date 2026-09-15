@@ -72,13 +72,15 @@ app.innerHTML = `
   <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></div>
 
   <main id="main">
-    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · SERVICE & MEMBER START</p><h2>실제 근무조건과<br>통근 여건을 함께 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span><b>함께</b> 면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
+    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · SERVICE START</p><h2>실제 근무조건과<br>통근 여건을 함께 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span><b>함께</b> 면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button login-link" href="#member">회원 로그인</a><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div></section>
+
+    <section class="member-page" id="member"><div class="member-page-heading"><p class="eyebrow light">02 · MEMBER</p><h2>로그인·회원가입</h2><p>회원가입과 로그인, 회원 유형별 예약과 준비 기능을 이 페이지에서 이용할 수 있습니다.</p></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
 
     <section class="hero" id="top">
       <img class="hero-photo" src="/hero-workplace.png" alt="물류 현장에서 함께 일하는 고용주와 근로자" />
       <div class="hero-shade"></div>
       <div class="hero-content">
-        <p class="eyebrow light">02 · 서비스 소개</p>
+        <p class="eyebrow light">03 · 서비스 소개</p>
         <h1>사람을 찾는 일,<br><em>감이 아닌 근거로.</em></h1>
         <p class="hero-copy">이 웹사이트는 공개 배포되어 있습니다. 회원가입·로그인과 예약은 실제 저장되며, 정식 매칭 서비스에 포함될 공고·지원·직접 연락 기능은 아직 개발 검증 단계입니다.</p>
         <div class="hero-actions"><a class="button lime" href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a><a class="button ghost" href="#for-worker">근로자로 시작하기</a></div>
@@ -91,18 +93,18 @@ app.innerHTML = `
         <div class="factors">${demoRecommendation.factors.map((factor) => `<span><b>${factor.value}</b>${factor.label}</span>`).join('')}</div>
         <p><span></span> ${demoRecommendation.reason}</p>
       </div>
-      <div class="hero-index">02 — 08</div>
+      <div class="hero-index">03 — 11</div>
     </section>
 
-    <section class="signal-strip" aria-label="시제품 참여 목표"><p><em class="demo-badge dark">목표 수치</em>시제품 참여 목표이며<br><strong>실제 이용 실적이 아닙니다.</strong></p>${prototypeTargetStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
+    <section class="signal-strip" id="targets" aria-label="시제품 참여 목표"><p><em class="demo-badge dark">04 · 목표 수치</em>시제품 참여 목표이며<br><strong>실제 이용 실적이 아닙니다.</strong></p>${prototypeTargetStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
     <section class="section intro" id="how">
-      <div class="section-kicker"><span>03</span><p class="eyebrow">HOW IT WORKS</p></div>
+      <div class="section-kicker"><span>05</span><p class="eyebrow">HOW IT WORKS</p></div>
       <div class="section-heading"><h2>공고부터 첫 출근까지,<br>흐름은 더 단순하게.</h2><p>필요한 조건을 입력하면 추천 근거가 정리됩니다. 제안과 응답, 채용 상태까지 한곳에서 이어집니다.</p></div>
       <div class="steps"><article><span>01</span><i>${icon('briefcase', 26)}</i><h3>조건 입력</h3><p>직무, 지역, 임금과 근무 시간을 입력하는 화면입니다.</p></article><article><span>02</span><i>${icon('spark', 26)}</i><h3>추천 근거 확인</h3><p>현재는 실제 계산이 아닌 시연용 예시를 보여줍니다.</p></article><article><span>03</span><i>${icon('route', 26)}</i><h3>면접 제안</h3><p>면접 일정과 장소를 확인하는 흐름을 시연합니다.</p></article><article><span>04</span><i>${icon('check', 26)}</i><h3>채용 결정</h3><p>자동 결정 없이 고용주가 최종 상태를 선택합니다.</p></article></div>
     </section>
 
     <section class="section prototype-section" id="prototype">
-      <div class="section-kicker"><span>04</span><p class="eyebrow">SERVICE FLOW PROTOTYPE</p></div>
+      <div class="section-kicker"><span>06</span><p class="eyebrow">SERVICE FLOW PROTOTYPE</p></div>
       <div class="section-heading"><h2>입력부터 결정까지,<br>직접 순서대로 시연하세요.</h2><p>조건 입력부터 추천 근거·면접 제안·채용 결정까지 직접 체험할 수 있습니다. 시연 DB는 실제 고객 및 이용 실적과 분리되며, 체험 중 입력값은 저장되지 않습니다.</p></div>
       <div class="prototype-shell"><nav id="prototype-steps" class="prototype-steps" aria-label="시연 단계"></nav><div id="prototype-panel" class="prototype-panel" aria-live="polite"></div></div>
     </section>
@@ -112,7 +114,7 @@ app.innerHTML = `
       <div class="score-card"><div class="score-head"><div><span>시연 공고</span><strong>안산 해솔식당 · 생산 포장</strong></div><b>예시 12명</b></div><div class="candidate"><div class="candidate-main"><span class="avatar blue">홍</span><div><strong>홍길동</strong><small>시연 후보 · 생산·포장</small></div><i>92점</i></div><div class="bar"><span style="width:92%"></span></div></div><div class="score-grid"><div><span>출퇴근 가능성</span><b>91</b><small>시연용 예시값</small></div><div><span>성실성</span><b>96</b><small>시연용 예시값</small></div><div><span>의사소통</span><b>88</b><small>시연용 예시값</small></div><div><span>업무 능력</span><b>92</b><small>시연용 예시값</small></div></div><div class="reason"><span>${icon('spark', 18)}</span><p><b>추천 근거 예시</b>${demoRecommendation.reason}</p></div><small class="model-note">${demoDataLabel} · 실제 AI 계산 결과가 아닙니다.</small></div>
     </section>
 
-    <section class="section dual-audience">
+    <section class="section dual-audience" id="audiences">
       <div class="section-kicker"><span>06</span><p class="eyebrow">BUILT FOR BOTH</p></div>
       <div class="audience-grid"><article><span class="audience-no">고용주</span><h2>필요한 조건을<br>직접 등록하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 등록·지원자 조회는 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·지원자</li><li>시연 화면: 추천·채용 결정</li></ul><a href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a></article><article id="for-worker"><span class="audience-no">근로자</span><h2>근무조건을 보고<br>직접 지원하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 확인·직접 지원은 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·직접 지원</li><li>시연 화면: 추천·면접 흐름</li></ul><a href="#start">근로자로 시작하기 ${icon('arrow', 18)}</a></article></div>
     </section>
@@ -130,10 +132,19 @@ app.innerHTML = `
 
     <section class="policy-document" id="points-policy" aria-labelledby="points-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">사업 확장 단계 도입 예정 · 정책 확정 필요</p><h2 id="points-title">포인트 정책</h2><p>포인트 제도는 현재 운영하지 않으며, 서비스와 사업을 확장하는 단계에서 도입할 예정입니다. 지금은 포인트 충전·적립·사용·환불 기능이 연결되어 있지 않아 회원에게 포인트 잔액이 부여되거나 결제가 청구되지 않습니다.</p><h3>현재 적용 상태</h3><ul><li>도입 시점: 향후 사업 확장 단계</li><li>포인트 구매 및 결제: 현재 미운영</li><li>포인트 적립 및 사용: 현재 미운영</li><li>포인트 환불 및 소멸: 적용 기준 없음</li><li>19,000원 표기: 임시 검증 가격이며 확정 수수료가 아님</li></ul><p>포인트 기능을 도입하기 전 적립·사용·유효기간·소멸·환불 기준과 시행일을 별도로 확정하고, 회원이 이용하기 전에 안내합니다.</p></article></section>
 
+    <footer id="site-info"><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#privacy-policy">개인정보 처리방침</a><a href="#terms-of-use">이용약관</a><a href="#points-policy">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
   </main>
-
-  <footer><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#privacy-policy">개인정보 처리방침</a><a href="#terms-of-use">이용약관</a><a href="#points-policy">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
 `;
+
+[
+  ['#matching .section-kicker > span', '07'],
+  ['#audiences .section-kicker > span', '08'],
+  ['#visa .section-kicker > span', '09'],
+  ['#trust .section-kicker > span', '10']
+].forEach(([selector, number]) => {
+  const marker = document.querySelector(selector);
+  if (marker) marker.textContent = number;
+});
 
 const menuButton = document.querySelector('.menu-button');
 const mobileMenu = document.querySelector('.mobile-menu');
@@ -150,33 +161,34 @@ function toggleMenu(force) {
 menuButton.addEventListener('click', () => toggleMenu());
 mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => toggleMenu(false)));
 
-const navigableScreens = [...document.querySelectorAll('main > section')];
+const navigableScreens = [...document.querySelectorAll('main > section, main > footer')];
 
 function screenIndexFor(element) {
-  const screen = element.closest('main > section');
+  const screen = element.closest('main > section, main > footer');
   return navigableScreens.indexOf(screen);
 }
 
 function currentScreenIndex() {
-  const viewportMiddle = window.innerHeight / 2;
+  const viewportMiddle = window.innerWidth / 2;
   return navigableScreens.reduce((closest, screen, index) => {
     if (getComputedStyle(screen).display === 'none') return closest;
     const bounds = screen.getBoundingClientRect();
-    const distance = Math.abs(bounds.top + (bounds.height / 2) - viewportMiddle);
+    const distance = Math.abs(bounds.left + (bounds.width / 2) - viewportMiddle);
     return distance < closest.distance ? { index, distance } : closest;
   }, { index: 0, distance: Number.POSITIVE_INFINITY }).index;
 }
 
 function commitHashNavigation(target, hash) {
   const root = document.documentElement;
-  const previousScrollBehavior = root.style.scrollBehavior;
-  root.style.scrollBehavior = 'auto';
+  const scroller = document.querySelector('#main');
+  const previousScrollBehavior = scroller.style.scrollBehavior;
+  scroller.style.scrollBehavior = 'auto';
   document.querySelectorAll('.policy-document').forEach((documentSection) => {
     documentSection.classList.toggle('policy-open', documentSection === target);
   });
   window.history.pushState(null, '', hash);
   target.scrollIntoView({ block: 'start', inline: 'start' });
-  window.requestAnimationFrame(() => { root.style.scrollBehavior = previousScrollBehavior; });
+  window.requestAnimationFrame(() => { scroller.style.scrollBehavior = previousScrollBehavior; });
 }
 
 function syncPolicyDocumentFromHash() {
@@ -190,8 +202,7 @@ window.addEventListener('popstate', syncPolicyDocumentFromHash);
 function navigateSideways(target, hash) {
   const root = document.documentElement;
   const targetScreenIndex = screenIndexFor(target);
-  const currentHashTarget = window.location.hash ? document.querySelector(window.location.hash) : null;
-  const sourceScreenIndex = currentHashTarget ? screenIndexFor(currentHashTarget) : currentScreenIndex();
+  const sourceScreenIndex = currentScreenIndex();
   const forward = targetScreenIndex >= sourceScreenIndex;
   const direction = forward ? 'forward' : 'backward';
   root.dataset.navigationDirection = direction;
@@ -1216,8 +1227,13 @@ document.querySelectorAll('[data-start]').forEach((button) => button.addEventLis
   selectedRole = button.dataset.start;
   authMode = 'signup';
   renderAuth();
-  memberApp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  navigateSideways(document.querySelector('#member'), '#member');
 }));
+
+document.querySelector('.login-link').addEventListener('click', () => {
+  authMode = 'login';
+  renderAuth();
+});
 
 if (supabase) {
   supabase.auth.getSession().then(({ data }) => data.session ? renderDashboard(data.session) : renderAuth());
