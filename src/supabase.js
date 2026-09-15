@@ -519,7 +519,7 @@ export async function loadDemoMarketplace() {
   const [employers, workers, interviewRequests] = await Promise.all([
     supabase.from('demo_employers').select('id, demo_code, display_name, city, industry, data_label').order('id').range(0, 199),
     supabase.from('demo_workers').select('id, demo_code, display_name, city, job_category, experience_months, data_label').order('id').range(0, 199),
-    supabase.from('demo_interview_requests').select('id, demo_employer_code, restaurant_name, industry, interview_date, interview_time, interview_method, status, data_label, created_at').order('created_at', { ascending: false }).range(0, 99)
+    supabase.from('demo_interview_requests').select('id, demo_employer_code, restaurant_name, industry, interview_date, interview_time, interview_method, status, data_label, responded_at, created_at').order('created_at', { ascending: false }).range(0, 99)
   ]);
   if (employers.error) throw employers.error;
   if (workers.error) throw workers.error;
@@ -539,6 +539,19 @@ export async function createDemoInterviewRequest(values) {
     interview_method: values.interview_method,
     created_by: user.id
   }).select('id, demo_employer_code, restaurant_name, industry, interview_date, interview_time, interview_method, status, data_label, created_at').single();
+  if (error) throw error;
+  return data;
+}
+
+export async function decideDemoInterviewRequest(requestId, status) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  if (!['accepted', 'declined'].includes(status)) throw new Error('올바르지 않은 면접 응답입니다.');
+  const { data, error } = await client.from('demo_interview_requests').update({
+    status,
+    responded_by: user.id,
+    responded_at: new Date().toISOString()
+  }).eq('id', requestId).eq('status', 'requested').select('id, status, responded_at').single();
   if (error) throw error;
   return data;
 }

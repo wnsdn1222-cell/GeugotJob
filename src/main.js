@@ -34,6 +34,7 @@ import {
   loadDemoRecords,
   loadDemoMarketplace,
   createDemoInterviewRequest,
+  decideDemoInterviewRequest,
   loadServiceLaunchConsole,
   loadServiceLaunchMemberData,
   syncServiceCase,
@@ -592,7 +593,13 @@ function demoMarketplacePanel(data, role) {
   const title = isEmployer ? '시연 근로자 전체 명단' : '시연 음식점·업종 전체 명단';
   const recommendationTitle = isEmployer ? '추천 근로자 리스트' : '추천 업종·음식점 리스트';
   const interviewRequests = data.interviewRequests ?? [];
-  const interviewRows = interviewRequests.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.status)}</small><b>${escapeHtml(item.restaurant_name)} · ${escapeHtml(item.industry)}</b><p>${escapeHtml(item.interview_date)} ${escapeHtml(String(item.interview_time).slice(0, 5))} · ${escapeHtml(item.interview_method)}</p></article>`).join('');
+  const statusLabels = { requested: '응답 대기', accepted: '면접 수락', declined: '수락 불가' };
+  const interviewRows = interviewRequests.map((item) => {
+    const decisionButtons = isEmployer && item.status === 'requested'
+      ? `<div class="demo-interview-actions"><button type="button" class="button lime" data-demo-interview-decision="accepted" data-request-id="${escapeHtml(item.id)}">수락</button><button type="button" class="button" data-demo-interview-decision="declined" data-request-id="${escapeHtml(item.id)}">수락 불가</button><p class="form-status" role="status"></p></div>`
+      : `<strong class="demo-interview-status ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</strong>`;
+    return `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(statusLabels[item.status] || item.status)}</small><b>${escapeHtml(item.restaurant_name)} · ${escapeHtml(item.industry)}</b><p>${escapeHtml(item.interview_date)} ${escapeHtml(String(item.interview_time).slice(0, 5))} · ${escapeHtml(item.interview_method)}</p>${decisionButtons}</article>`;
+  }).join('');
   const interviewList = `<section class="demo-shared-interviews"><div class="demo-market-head"><div><span>Supabase 시연 예약</span><h3>${isEmployer ? '근로자 면접 요청 리스트' : '내 시연 면접 요청'}</h3><p>실제 회원 연락처 없이 시연 음식점·업종·일정만 공유됩니다.</p></div><button type="button" class="button" data-refresh-demo-interviews>새로고침</button></div><div class="demo-interview-list">${interviewRows || '<p class="empty-state">아직 등록된 시연 면접 요청이 없습니다.</p>'}</div></section>`;
   const card = (item, recommended = false) => {
     const detail = isEmployer
@@ -708,6 +715,22 @@ async function renderDashboard(session) {
     memberApp.querySelector('#retry-dashboard')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('#retry-mvp')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('[data-refresh-demo-interviews]')?.addEventListener('click', () => renderDashboard(session));
+    memberApp.querySelectorAll('[data-demo-interview-decision]').forEach((button) => button.addEventListener('click', async () => {
+      const actions = button.closest('.demo-interview-actions');
+      const status = actions?.querySelector('.form-status');
+      actions?.querySelectorAll('button').forEach((item) => { item.disabled = true; });
+      if (status) status.textContent = '면접 응답을 저장하는 중입니다…';
+      try {
+        await decideDemoInterviewRequest(button.dataset.requestId, button.dataset.demoInterviewDecision);
+        await renderDashboard(session);
+      } catch (error) {
+        if (status) {
+          status.textContent = error.message;
+          status.classList.add('error');
+        }
+        actions?.querySelectorAll('button').forEach((item) => { item.disabled = false; });
+      }
+    }));
     memberApp.querySelector('[data-demo-market-search]')?.addEventListener('input', (event) => {
       const query = event.currentTarget.value.trim().toLowerCase();
       const cards = [...memberApp.querySelectorAll('[data-demo-market-card]')];
