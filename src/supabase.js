@@ -516,13 +516,31 @@ export async function loadDemoRecords() {
 
 export async function loadDemoMarketplace() {
   if (!supabase) return null;
-  const [employers, workers] = await Promise.all([
+  const [employers, workers, interviewRequests] = await Promise.all([
     supabase.from('demo_employers').select('id, demo_code, display_name, city, industry, data_label').order('id').range(0, 199),
-    supabase.from('demo_workers').select('id, demo_code, display_name, city, job_category, experience_months, data_label').order('id').range(0, 199)
+    supabase.from('demo_workers').select('id, demo_code, display_name, city, job_category, experience_months, data_label').order('id').range(0, 199),
+    supabase.from('demo_interview_requests').select('id, demo_employer_code, restaurant_name, industry, interview_date, interview_time, interview_method, status, data_label, created_at').order('created_at', { ascending: false }).range(0, 99)
   ]);
   if (employers.error) throw employers.error;
   if (workers.error) throw workers.error;
-  return { employers: employers.data ?? [], workers: workers.data ?? [] };
+  if (interviewRequests.error) throw interviewRequests.error;
+  return { employers: employers.data ?? [], workers: workers.data ?? [], interviewRequests: interviewRequests.data ?? [] };
+}
+
+export async function createDemoInterviewRequest(values) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('demo_interview_requests').insert({
+    demo_employer_code: values.demo_employer_code,
+    restaurant_name: values.restaurant_name,
+    industry: values.industry,
+    interview_date: values.interview_date,
+    interview_time: values.interview_time,
+    interview_method: values.interview_method,
+    created_by: user.id
+  }).select('id, demo_employer_code, restaurant_name, industry, interview_date, interview_time, interview_method, status, data_label, created_at').single();
+  if (error) throw error;
+  return data;
 }
 
 export async function loadServiceLaunchConsole() {

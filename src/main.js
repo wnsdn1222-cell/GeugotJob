@@ -33,6 +33,7 @@ import {
   saveOperatingCost,
   loadDemoRecords,
   loadDemoMarketplace,
+  createDemoInterviewRequest,
   loadServiceLaunchConsole,
   loadServiceLaunchMemberData,
   syncServiceCase,
@@ -589,14 +590,58 @@ function demoMarketplacePanel(data, role) {
   const records = isEmployer ? data.workers : data.employers;
   const unit = isEmployer ? '명' : '곳';
   const title = isEmployer ? '시연 근로자 전체 명단' : '시연 음식점·업종 전체 명단';
-  const cards = records.map((item) => {
+  const recommendationTitle = isEmployer ? '추천 근로자 리스트' : '추천 업종·음식점 리스트';
+  const interviewRequests = data.interviewRequests ?? [];
+  const interviewRows = interviewRequests.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.status)}</small><b>${escapeHtml(item.restaurant_name)} · ${escapeHtml(item.industry)}</b><p>${escapeHtml(item.interview_date)} ${escapeHtml(String(item.interview_time).slice(0, 5))} · ${escapeHtml(item.interview_method)}</p></article>`).join('');
+  const interviewList = `<section class="demo-shared-interviews"><div class="demo-market-head"><div><span>Supabase 시연 예약</span><h3>${isEmployer ? '근로자 면접 요청 리스트' : '내 시연 면접 요청'}</h3><p>실제 회원 연락처 없이 시연 음식점·업종·일정만 공유됩니다.</p></div><button type="button" class="button" data-refresh-demo-interviews>새로고침</button></div><div class="demo-interview-list">${interviewRows || '<p class="empty-state">아직 등록된 시연 면접 요청이 없습니다.</p>'}</div></section>`;
+  const card = (item, recommended = false) => {
     const detail = isEmployer
       ? `${item.city} · ${item.job_category} · 가상 경력 ${Number(item.experience_months)}개월`
       : `${item.city} · ${item.industry}`;
     const searchable = `${item.display_name} ${detail} ${item.demo_code}`.toLowerCase();
-    return `<article class="demo-market-card" data-demo-market-card data-searchable="${escapeHtml(searchable)}"><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(detail)}</p></article>`;
-  }).join('');
-  return `<section class="demo-marketplace"><div class="demo-market-head"><div><span>시연 DB · 실제 회원 명단 아님</span><h3>${title}</h3><p>목표 달성이나 실제 이용 실적으로 집계되지 않는 가상 인물입니다.</p></div><b>${records.length}${unit}</b></div><label class="demo-market-search">명단 검색<input type="search" data-demo-market-search placeholder="이름, 지역, 업종 검색"></label><div class="demo-market-grid">${cards}</div><p class="demo-market-empty" hidden>검색 결과가 없습니다.</p></section>`;
+    return `<button type="button" class="demo-market-card${recommended ? ' recommended' : ''}" ${recommended ? '' : 'data-demo-market-card'} data-demo-interview data-demo-code="${escapeHtml(item.demo_code)}" data-demo-name="${escapeHtml(item.display_name)}" data-demo-detail="${escapeHtml(detail)}" data-demo-industry="${escapeHtml(isEmployer ? item.job_category : item.industry)}" data-searchable="${escapeHtml(searchable)}"><small>${recommended ? '추천 예시 · 실제 계산 아님' : `${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}`}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(detail)}</p><span>${isEmployer ? '면접 제안 체험' : '면접 요청 예약'} ${icon('arrow', 14)}</span></button>`;
+  };
+  const recommendations = records.slice(0, 6).map((item) => card(item, true)).join('');
+  const cards = records.map((item) => card(item)).join('');
+  return `<section class="demo-marketplace">${interviewList}<div class="demo-market-divider"></div><div class="demo-market-head"><div><span>시연 DB · 실제 회원 명단 아님</span><h3>${recommendationTitle}</h3><p>추천 계산이 연결되지 않아 시연 레코드 중 일부를 예시로 표시합니다. 카드를 누르면 면접 흐름을 체험할 수 있습니다.</p></div><b>예시</b></div><div class="demo-market-grid demo-recommend-grid">${recommendations}</div><div class="demo-market-divider"></div><div class="demo-market-head"><div><span>전체 시연 명단</span><h3>${title}</h3><p>목표 달성이나 실제 이용 실적으로 집계되지 않는 가상 인물입니다.</p></div><b>${records.length}${unit}</b></div><label class="demo-market-search">명단 검색<input type="search" data-demo-market-search placeholder="이름, 지역, 업종 검색"></label><div class="demo-market-grid">${cards}</div><p class="demo-market-empty" hidden>검색 결과가 없습니다.</p><section class="demo-interview-panel" data-demo-interview-panel hidden aria-live="polite"></section></section>`;
+}
+
+function renderDemoInterview(panel, role, selected) {
+  const isEmployer = role === 'employer';
+  const actionLabel = isEmployer ? '면접 제안' : '면접 요청';
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  panel.hidden = false;
+  const workerNotice = isEmployer ? '실제 상대방에게 전송되거나 예약 DB에 저장되지 않습니다.' : '음식점·업종·일정만 시연 DB에 저장되며 이름·이메일·전화번호는 고용주에게 공유되지 않습니다.';
+  panel.innerHTML = `<span>${isEmployer ? '저장되지 않는 면접 제안 시연' : '고용주에게 공유되는 시연 면접 요청'}</span><h3>${escapeHtml(selected.name)} ${actionLabel}</h3><p>${escapeHtml(selected.detail)}</p><form data-demo-interview-form><label>면접 날짜<input type="date" name="date" value="${tomorrow}" required></label><label>면접 시간<input type="time" name="time" value="14:00" required></label><label>면접 방식<select name="method"><option>매장 방문</option><option>전화 면접</option><option>영상 면접</option></select></label><button class="button lime" type="submit">${actionLabel} ${isEmployer ? '시연 완료' : '예약'}</button><p class="form-status" role="status">${workerNotice}</p></form>`;
+  panel.querySelector('[data-demo-interview-form]').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const submit = formElement.querySelector('[type="submit"]');
+    submit.disabled = true;
+    setFormMessage(formElement, isEmployer ? '면접 제안 화면을 처리하는 중입니다…' : '시연 면접 요청을 저장하는 중입니다…');
+    try {
+      if (!isEmployer) {
+        await createDemoInterviewRequest({
+          demo_employer_code: selected.code,
+          restaurant_name: selected.name,
+          industry: selected.industry,
+          interview_date: formText(form, 'date'),
+          interview_time: formText(form, 'time'),
+          interview_method: formText(form, 'method')
+        });
+      }
+      const resultText = isEmployer
+        ? '화면 체험만 완료되었습니다. 실제 면접 제안 전송과 DB 저장은 실행하지 않았습니다.'
+        : '시연 면접 요청을 저장했습니다. 고용주 계정의 면접 요청 리스트에서 음식점·업종·일정을 확인할 수 있습니다.';
+      panel.innerHTML = `<span>면접 ${isEmployer ? '시연' : '요청'} 완료</span><h3>${escapeHtml(selected.name)}</h3><p>${escapeHtml(formText(form, 'date'))} ${escapeHtml(formText(form, 'time'))} · ${escapeHtml(formText(form, 'method'))}</p><div class="demo-interview-result">${resultText}</div><button type="button" class="button" data-demo-interview-close>다른 명단 보기</button>`;
+      panel.querySelector('[data-demo-interview-close]').addEventListener('click', () => { panel.hidden = true; });
+    } catch (error) {
+      setFormMessage(formElement, error.message, 'error');
+      submit.disabled = false;
+    }
+  });
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function renderDashboard(session) {
@@ -662,6 +707,7 @@ async function renderDashboard(session) {
     memberApp.querySelector('#sign-out').addEventListener('click', signOut);
     memberApp.querySelector('#retry-dashboard')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('#retry-mvp')?.addEventListener('click', () => renderDashboard(session));
+    memberApp.querySelector('[data-refresh-demo-interviews]')?.addEventListener('click', () => renderDashboard(session));
     memberApp.querySelector('[data-demo-market-search]')?.addEventListener('input', (event) => {
       const query = event.currentTarget.value.trim().toLowerCase();
       const cards = [...memberApp.querySelectorAll('[data-demo-market-card]')];
@@ -674,6 +720,16 @@ async function renderDashboard(session) {
       const empty = memberApp.querySelector('.demo-market-empty');
       if (empty) empty.hidden = visibleCount !== 0;
     });
+    memberApp.querySelectorAll('[data-demo-interview]').forEach((card) => card.addEventListener('click', () => {
+      const panel = memberApp.querySelector('[data-demo-interview-panel]');
+      if (!panel) return;
+      renderDemoInterview(panel, profile.role, {
+        code: card.dataset.demoCode,
+        name: card.dataset.demoName,
+        detail: card.dataset.demoDetail,
+        industry: card.dataset.demoIndustry
+      });
+    }));
 
     memberApp.querySelector('#employer-profile-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
