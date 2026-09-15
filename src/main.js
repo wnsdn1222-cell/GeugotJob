@@ -72,15 +72,14 @@ app.innerHTML = `
   <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></div>
 
   <main id="main">
-    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><p class="eyebrow light">01 · SERVICE START</p><h2>실제 근무조건과<br>통근 여건을 함께 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span><b>함께</b> 면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button login-link" href="#member">회원 로그인</a><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div></section>
+    <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><h2>실제 근무조건과<br>통근 여건을 함께 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span><b>함께</b> 면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button login-link" href="#member">회원 로그인</a><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div></section>
 
-    <section class="member-page" id="member"><div class="member-page-heading"><p class="eyebrow light">02 · MEMBER</p><h2>로그인·회원가입</h2><p>회원가입과 로그인, 회원 유형별 예약과 준비 기능을 이 페이지에서 이용할 수 있습니다.</p></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
+    <section class="member-page" id="member"><div class="member-page-heading"><h2>로그인·회원가입</h2><p>회원가입과 로그인, 회원 유형별 예약과 준비 기능을 이 페이지에서 이용할 수 있습니다.</p></div><div id="member-app" class="member-app" aria-live="polite"></div></section>
 
     <section class="hero" id="top">
       <img class="hero-photo" src="/hero-workplace.png" alt="물류 현장에서 함께 일하는 고용주와 근로자" />
       <div class="hero-shade"></div>
       <div class="hero-content">
-        <p class="eyebrow light">03 · 서비스 소개</p>
         <h1>사람을 찾는 일,<br><em>감이 아닌 근거로.</em></h1>
         <p class="hero-copy">이 웹사이트는 공개 배포되어 있습니다. 회원가입·로그인과 예약은 실제 저장되며, 정식 매칭 서비스에 포함될 공고·지원·직접 연락 기능은 아직 개발 검증 단계입니다.</p>
         <div class="hero-actions"><a class="button lime" href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a><a class="button ghost" href="#for-worker">근로자로 시작하기</a></div>
@@ -93,38 +92,34 @@ app.innerHTML = `
         <div class="factors">${demoRecommendation.factors.map((factor) => `<span><b>${factor.value}</b>${factor.label}</span>`).join('')}</div>
         <p><span></span> ${demoRecommendation.reason}</p>
       </div>
-      <div class="hero-index">03 — 11</div>
     </section>
 
-    <section class="signal-strip" id="targets" aria-label="시제품 참여 목표"><p><em class="demo-badge dark">04 · 목표 수치</em>시제품 참여 목표이며<br><strong>실제 이용 실적이 아닙니다.</strong></p>${prototypeTargetStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
+    <section class="signal-strip" id="targets" aria-label="시제품 참여 목표"><p><em class="demo-badge dark">목표 수치</em>시제품 참여 목표이며<br><strong>실제 이용 실적이 아닙니다.</strong></p>${prototypeTargetStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
     <section class="section intro" id="how">
-      <div class="section-kicker"><span>05</span><p class="eyebrow">HOW IT WORKS</p></div>
       <div class="section-heading"><h2>공고부터 첫 출근까지,<br>흐름은 더 단순하게.</h2><p>필요한 조건을 입력하면 추천 근거가 정리됩니다. 제안과 응답, 채용 상태까지 한곳에서 이어집니다.</p></div>
       <div class="steps"><article><span>01</span><i>${icon('briefcase', 26)}</i><h3>조건 입력</h3><p>직무, 지역, 임금과 근무 시간을 입력하는 화면입니다.</p></article><article><span>02</span><i>${icon('spark', 26)}</i><h3>추천 근거 확인</h3><p>현재는 실제 계산이 아닌 시연용 예시를 보여줍니다.</p></article><article><span>03</span><i>${icon('route', 26)}</i><h3>면접 제안</h3><p>면접 일정과 장소를 확인하는 흐름을 시연합니다.</p></article><article><span>04</span><i>${icon('check', 26)}</i><h3>채용 결정</h3><p>자동 결정 없이 고용주가 최종 상태를 선택합니다.</p></article></div>
     </section>
 
     <section class="section prototype-section" id="prototype">
-      <div class="section-kicker"><span>06</span><p class="eyebrow">SERVICE FLOW PROTOTYPE</p></div>
       <div class="section-heading"><h2>입력부터 결정까지,<br>직접 순서대로 시연하세요.</h2><p>조건 입력부터 추천 근거·면접 제안·채용 결정까지 직접 체험할 수 있습니다. 시연 DB는 실제 고객 및 이용 실적과 분리되며, 체험 중 입력값은 저장되지 않습니다.</p></div>
       <div class="prototype-shell"><nav id="prototype-steps" class="prototype-steps" aria-label="시연 단계"></nav><div id="prototype-panel" class="prototype-panel" aria-live="polite"></div></div>
     </section>
 
     <section class="matching-section" id="matching">
-      <div class="matching-copy"><div class="section-kicker"><span>05</span><p class="eyebrow light">RECOMMENDATION UI EXAMPLE</p></div><span class="demo-badge">${demoDataLabel}</span><h2>점수보다 중요한 건,<br><em>왜 맞는지</em>입니다.</h2><p>이 영역은 추천 근거를 어떻게 보여줄지 설명하는 화면 예시입니다. 실제 AI 모델이나 점수 계산은 아직 연결되지 않았습니다.</p><ul><li>${icon('check', 17)} 표시된 점수와 인원은 실제 이용 기록이 아닌 예시</li><li>${icon('check', 17)} 국적·성별·연령은 업무 적합도 점수에서 제외 예정</li><li>${icon('check', 17)} AI에 의한 자동 탈락·자동 채용 금지</li></ul></div>
+      <div class="matching-copy"><span class="demo-badge">${demoDataLabel}</span><h2>점수보다 중요한 건,<br><em>왜 맞는지</em>입니다.</h2><p>이 영역은 추천 근거를 어떻게 보여줄지 설명하는 화면 예시입니다. 실제 AI 모델이나 점수 계산은 아직 연결되지 않았습니다.</p><ul><li>${icon('check', 17)} 표시된 점수와 인원은 실제 이용 기록이 아닌 예시</li><li>${icon('check', 17)} 국적·성별·연령은 업무 적합도 점수에서 제외 예정</li><li>${icon('check', 17)} AI에 의한 자동 탈락·자동 채용 금지</li></ul></div>
       <div class="score-card"><div class="score-head"><div><span>시연 공고</span><strong>안산 해솔식당 · 생산 포장</strong></div><b>예시 12명</b></div><div class="candidate"><div class="candidate-main"><span class="avatar blue">홍</span><div><strong>홍길동</strong><small>시연 후보 · 생산·포장</small></div><i>92점</i></div><div class="bar"><span style="width:92%"></span></div></div><div class="score-grid"><div><span>출퇴근 가능성</span><b>91</b><small>시연용 예시값</small></div><div><span>성실성</span><b>96</b><small>시연용 예시값</small></div><div><span>의사소통</span><b>88</b><small>시연용 예시값</small></div><div><span>업무 능력</span><b>92</b><small>시연용 예시값</small></div></div><div class="reason"><span>${icon('spark', 18)}</span><p><b>추천 근거 예시</b>${demoRecommendation.reason}</p></div><small class="model-note">${demoDataLabel} · 실제 AI 계산 결과가 아닙니다.</small></div>
     </section>
 
     <section class="section dual-audience" id="audiences">
-      <div class="section-kicker"><span>06</span><p class="eyebrow">BUILT FOR BOTH</p></div>
       <div class="audience-grid"><article><span class="audience-no">고용주</span><h2>필요한 조건을<br>직접 등록하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 등록·지원자 조회는 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·지원자</li><li>시연 화면: 추천·채용 결정</li></ul><a href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a></article><article id="for-worker"><span class="audience-no">근로자</span><h2>근무조건을 보고<br>직접 지원하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 확인·직접 지원은 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·직접 지원</li><li>시연 화면: 추천·면접 흐름</li></ul><a href="#start">근로자로 시작하기 ${icon('arrow', 18)}</a></article></div>
     </section>
 
     <section class="visa-section" id="visa">
-      <div><div class="section-kicker"><span>07</span><p class="eyebrow light">VISA SUPPORT · PREPARING</p></div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
+      <div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
       <div><div class="visa-list"><article><i>${icon('shield', 22)}</i><div><b>체류 자격 정보 입력</b><span>저장되지 않는 시연</span></div></article><article><i>${icon('globe', 22)}</i><div><b>확인 항목 안내</b><span>실제 취업 가능 판정 아님</span></div></article><article><i>${icon('route', 22)}</i><div><b>전문 파트너 연결</b><span>요청 전송 없는 시연</span></div></article></div><div id="visa-demo" class="visa-demo" aria-live="polite"></div></div>
     </section>
 
-    <section class="section trust" id="trust"><div class="section-kicker"><span>08</span><p class="eyebrow">TRUST PRINCIPLES</p></div><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
+    <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
     <section class="policy-document" id="privacy-policy" aria-labelledby="privacy-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="privacy-title">개인정보 처리방침</h2><p>그곳잡은 회원가입·로그인, 회원 유형별 서비스 제공과 예약 관리를 위해 필요한 범위의 개인정보를 처리합니다. 아래 내용은 현재 구현을 기준으로 작성한 안내 초안이며, 사업자 정보와 보유기간 등 미확정 항목은 운영 전 확정·고지해야 합니다.</p><h3>현재 처리하는 정보</h3><ul><li>회원가입: 이름, 이메일, 암호화되어 관리되는 인증 정보, 회원 유형</li><li>회원 기능: 고용주 또는 근로자가 직접 입력한 프로필·근무조건·희망조건</li><li>예약 기능: 예약 종류, 일시, 장소와 메모</li></ul><h3>이용 목적과 보관</h3><p>입력 정보는 계정 인증, 회원 기능 제공, 예약 저장·조회에 사용됩니다. 인증과 데이터 저장에는 Supabase가 사용됩니다. 구체적인 보유·파기 기간, 개인정보 처리자 정보, 문의 연락처와 국외 이전 관련 고지는 운영 전 법률 검토를 거쳐 확정해야 합니다.</p><h3>시연 데이터</h3><p>‘시연용 가상 데이터’로 표시된 정보는 실제 회원·이용 실적과 분리되며, 실제 고객의 신원 정보로 표시하지 않습니다.</p></article></section>
 
@@ -135,16 +130,6 @@ app.innerHTML = `
     <footer id="site-info"><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#privacy-policy">개인정보 처리방침</a><a href="#terms-of-use">이용약관</a><a href="#points-policy">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
   </main>
 `;
-
-[
-  ['#matching .section-kicker > span', '07'],
-  ['#audiences .section-kicker > span', '08'],
-  ['#visa .section-kicker > span', '09'],
-  ['#trust .section-kicker > span', '10']
-].forEach(([selector, number]) => {
-  const marker = document.querySelector(selector);
-  if (marker) marker.textContent = number;
-});
 
 const menuButton = document.querySelector('.menu-button');
 const mobileMenu = document.querySelector('.mobile-menu');
