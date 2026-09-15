@@ -15,6 +15,13 @@ import {
   logDirectContact,
   saveServiceIntent,
   isJobInfoMvpDevelopment,
+  isClosedBetaDevelopment,
+  loadClosedBetaConsole,
+  saveClosedBetaParticipant,
+  createManualIntroduction,
+  saveContractConfirmation,
+  savePaymentPreparation,
+  saveWorkOutcome,
   draftConsentVersion,
   loadReservations,
   createReservation,
@@ -368,13 +375,61 @@ function workerMvp(profile, data) {
   </div>`;
 }
 
+function oneRelation(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function closedBetaConsole(data) {
+  const activeIds = new Set(data.participants.filter((item) => item.active).map((item) => item.profile_id));
+  const profileOptions = data.profiles
+    .map((item) => `<option value="${item.id}" data-role="${item.role}">${escapeHtml(item.full_name || '이름 미입력')} · ${item.role === 'employer' ? '고용주' : '근로자'}</option>`)
+    .join('');
+  const jobs = data.jobs.filter((job) => activeIds.has(oneRelation(job.employer)?.profile_id));
+  const workers = data.workers.filter((worker) => activeIds.has(worker.profile_id));
+  const jobOptions = jobs.map((job) => `<option value="${job.id}">${escapeHtml(job.company_name || oneRelation(job.employer)?.company_name || '사업장')} · ${escapeHtml(job.title)}</option>`).join('');
+  const workerOptions = workers.map((worker) => `<option value="${worker.id}">${escapeHtml(oneRelation(worker.profile)?.full_name || '이름 미입력')} · ${escapeHtml(worker.job_category)}</option>`).join('');
+  const jobsById = new Map(data.jobs.map((item) => [item.id, item]));
+  const workersById = new Map(data.workers.map((item) => [item.id, item]));
+
+  const introductionCards = data.introductions.map((item) => {
+    const job = jobsById.get(item.job_posting_id) ?? {};
+    const worker = workersById.get(item.worker_id) ?? {};
+    const contract = oneRelation(item.contract);
+    const payment = oneRelation(item.payment);
+    const outcome = oneRelation(item.outcome);
+    const payerProfileId = oneRelation(job.employer)?.profile_id || '';
+    const contractConfirmed = contract?.status === 'confirmed';
+    return `<article class="beta-record">
+      <div class="beta-record-head"><div><span>수동 소개 기록</span><h4>${escapeHtml(job.title || '공고')} ↔ ${escapeHtml(oneRelation(worker.profile)?.full_name || '근로자')}</h4></div><b>${escapeHtml(item.status)}</b></div>
+      <p><strong>비교 메모</strong>${escapeHtml(item.comparison_notes)}</p><p><strong>선택 근거</strong>${escapeHtml(item.selection_reason || '미입력')}</p>${item.employer_feedback ? `<p><strong>고용주 의견</strong>${escapeHtml(item.employer_feedback)}</p>` : ''}
+      <div class="beta-stage-grid">
+        <form class="beta-contract-form" data-introduction-id="${item.id}"><h5>1. 근로계약 체결 확인</h5><label>상태<select name="status"><option value="pending" ${contract?.status === 'pending' || !contract ? 'selected' : ''}>확인 대기</option><option value="submitted" ${contract?.status === 'submitted' ? 'selected' : ''}>확인자료 접수</option><option value="confirmed" ${contractConfirmed ? 'selected' : ''}>체결 확인</option><option value="rejected" ${contract?.status === 'rejected' ? 'selected' : ''}>확인 반려</option></select></label><label>확인 방법·근거<input name="confirmation_method" value="${escapeHtml(contract?.confirmation_method || '')}" placeholder="기준 확정 후 직접 입력"></label><label>증빙 참조 메모<input name="evidence_reference" value="${escapeHtml(contract?.evidence_reference || '')}"></label><button class="button" type="submit">계약 상태 저장</button><p class="form-status" role="status"></p></form>
+        <form class="beta-payment-form" data-introduction-id="${item.id}" data-payer-profile-id="${payerProfileId}"><h5>2. 결제 준비·테스트</h5><p>19,000원 · 임시 검증 가격<br>결제 제공자 미연결 · 실제 청구 없음</p><div class="payment-gate ${contractConfirmed ? 'eligible' : 'blocked'}">${contractConfirmed ? '계약 확인됨 · 테스트 가능' : '계약 확인 전 · 결제 차단'}</div><button class="button" type="submit" name="charge_status" value="blocked">테스트 결제수단·동의 기록</button><button class="button lime" type="submit" name="charge_status" value="test_completed" ${contractConfirmed ? '' : 'disabled'}>무청구 결제 흐름 완료</button><small>현재 상태: ${escapeHtml(payment?.charge_status || 'blocked')}</small><p class="form-status" role="status"></p></form>
+        <form class="beta-outcome-form" data-introduction-id="${item.id}"><h5>3. 근무 결과</h5><label>출근 여부<select name="attendance_status"><option value="unknown">미확인</option><option value="attended" ${outcome?.attendance_status === 'attended' ? 'selected' : ''}>출근</option><option value="no_show" ${outcome?.attendance_status === 'no_show' ? 'selected' : ''}>미출근</option></select></label><label>첫 근무<select name="first_shift_status"><option value="unknown">미확인</option><option value="completed" ${outcome?.first_shift_status === 'completed' ? 'selected' : ''}>완료</option><option value="not_completed" ${outcome?.first_shift_status === 'not_completed' ? 'selected' : ''}>미완료</option></select></label><label>계약기간 결과<select name="contract_outcome"><option value="unknown">미확인</option><option value="in_progress" ${outcome?.contract_outcome === 'in_progress' ? 'selected' : ''}>이행 중</option><option value="completed" ${outcome?.contract_outcome === 'completed' ? 'selected' : ''}>계약기간 완료</option><option value="ended_early" ${outcome?.contract_outcome === 'ended_early' ? 'selected' : ''}>중도 종료</option></select></label><label>결과 메모<textarea name="outcome_notes" rows="2">${escapeHtml(outcome?.outcome_notes || '')}</textarea></label><button class="button" type="submit">근무 결과 저장</button><p class="form-status" role="status"></p></form>
+      </div>
+    </article>`;
+  }).join('');
+
+  return `<section class="closed-beta-console">
+    <div class="compliance-banner"><b>시제품 1 · 관리자 수동 매칭 개발 모드</b><p>유료직업소개사업 등록과 결제 연동은 확인되지 않았습니다. 실제 소개·청구 없이 제한 참여자 데이터로만 검증합니다.</p></div>
+    <div class="beta-admin-grid">
+      <form id="beta-participant-form" class="mvp-card mvp-form"><div class="card-title"><span>참여자 제한</span><h3>클로즈 베타 참여자 지정</h3></div><label>회원<select name="profile_id" required><option value="">선택하세요</option>${profileOptions}</select></label><button class="button" type="submit">참여자로 지정</button><p class="form-status" role="status"></p></form>
+      <form id="manual-introduction-form" class="mvp-card mvp-form"><div class="card-title"><span>운영자 수동 비교</span><h3>공고와 근로자 비교·선택</h3><p>자동 점수 없이 실제 근무조건과 경력·희망조건·통근 여건을 직접 확인합니다.</p></div><label>공고<select name="job_posting_id" required><option value="">${jobs.length ? '공고 선택' : '참여 고용주의 공고가 없습니다'}</option>${jobOptions}</select></label><label>근로자<select name="worker_id" required><option value="">${workers.length ? '근로자 선택' : '참여 근로자 정보가 없습니다'}</option>${workerOptions}</select></label><label>고용주 의견<textarea name="employer_feedback" rows="2" maxlength="2000"></textarea></label><label>비교 메모<textarea name="comparison_notes" rows="3" maxlength="3000" required placeholder="근무조건, 유사업무 경험, 희망조건, 통근 여건을 직접 비교한 내용"></textarea></label><label>선택 근거<textarea name="selection_reason" rows="2" maxlength="2000" required></textarea></label><button class="button lime" type="submit" ${jobs.length && workers.length ? '' : 'disabled'}>수동 소개 기록</button><p class="form-status" role="status"></p></form>
+    </div>
+    <div class="beta-comparison"><div><h4>고용주 근무조건</h4>${jobs.length ? jobs.map((job) => `<article><b>${escapeHtml(job.title)}</b><p>${escapeHtml(job.city)} · ${escapeHtml(job.workplace_address || '주소 미입력')}<br>${escapeHtml(job.work_days || '근무일 미입력')} · ${escapeHtml(job.work_hours || '근무시간 미입력')}<br>${Number(job.wage_amount || 0).toLocaleString()}원 (${escapeHtml(job.wage_type)})</p></article>`).join('') : '<p>비교할 공고가 없습니다.</p>'}</div><div><h4>근로자 조건</h4>${workers.length ? workers.map((worker) => `<article><b>${escapeHtml(oneRelation(worker.profile)?.full_name || '이름 미입력')}</b><p>${escapeHtml(worker.job_category)} · 경력 ${Number(worker.experience_months || 0)}개월<br>${escapeHtml(worker.city)} · ${escapeHtml(worker.desired_conditions || '희망조건 미입력')}<br>${escapeHtml(worker.experience_summary || '경력요약 미입력')}</p></article>`).join('') : '<p>비교할 근로자가 없습니다.</p>'}</div></div>
+    <div class="beta-records"><div class="list-head"><span>소개·계약·결제·근무 기록</span><b>${data.introductions.length}건</b></div>${introductionCards || '<p class="empty-state">아직 수동 소개 기록이 없습니다.</p>'}</div>
+    <p class="beta-criteria-note">계약 확인 방법과 계약기간 이행률 계산 기준은 확정되지 않았습니다. 확인 근거는 운영자가 직접 기록하며, 이행률 수치는 계산하지 않습니다.</p>
+  </section>`;
+}
+
 async function renderDashboard(session) {
   memberApp.innerHTML = '<p class="member-loading">회원 정보와 저장된 데이터를 불러오는 중입니다…</p>';
   try {
-    const [profileResult, reservationsResult, mvpResult] = await Promise.allSettled([
+    const [profileResult, reservationsResult, mvpResult, betaResult] = await Promise.allSettled([
       getMyProfile(),
       loadReservations(),
-      isJobInfoMvpDevelopment ? getMyProfile().then((profile) => loadMvpData(profile.role)) : Promise.resolve(null)
+      isJobInfoMvpDevelopment ? getMyProfile().then((profile) => loadMvpData(profile.role)) : Promise.resolve(null),
+      isClosedBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadClosedBetaConsole() : null) : Promise.resolve(null)
     ]);
     const fallbackRole = session.user.user_metadata?.role === 'employer' ? 'employer' : 'worker';
     const profile = profileResult.status === 'fulfilled'
@@ -382,17 +437,23 @@ async function renderDashboard(session) {
       : { role: fallbackRole, full_name: session.user.user_metadata?.full_name || '' };
     const reservations = reservationsResult.status === 'fulfilled' ? reservationsResult.value : [];
     const mvpData = mvpResult.status === 'fulfilled' ? mvpResult.value : null;
-    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected');
+    const betaData = betaResult.status === 'fulfilled' ? betaResult.value : null;
+    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected');
     const mvpContent = isJobInfoMvpDevelopment
       ? (mvpData ? (profile.role === 'employer' ? employerMvp(profile, mvpData) : workerMvp(profile, mvpData)) : '<div class="dashboard-warning"><p><b>MVP 데이터를 불러오지 못했습니다.</b><br>저장 기능은 실행하지 않았습니다.</p><button type="button" id="retry-mvp">다시 불러오기</button></div>')
       : '<div class="compliance-banner locked"><b>직업정보 MVP 준비 완료 · 운영 잠금</b><p>직업정보제공사업 신고 완료가 확인되기 전에는 공고 등록·지원·직접 연락 기능을 운영하지 않습니다. 개발 환경에서만 기능을 검증할 수 있습니다.</p></div>';
+    const betaContent = isClosedBetaDevelopment && profile.role === 'admin'
+      ? (betaData ? closedBetaConsole(betaData) : '<div class="dashboard-warning"><p><b>클로즈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
+      : '<div class="compliance-banner locked"><b>시제품 1 클로즈 베타 · 운영 잠금</b><p>유료직업소개사업 등록 완료가 확인되지 않았습니다. 실제 소개와 고객 청구는 활성화하지 않으며 관리자 개발 환경에서만 수동 흐름을 검증합니다.</p></div>';
     const notice = dashboardNotice;
     dashboardNotice = '';
+    const roleLabel = profile.role === 'admin' ? '운영자' : profile.role === 'employer' ? '고용주' : '근로자';
     memberApp.innerHTML = `
-      <div class="dashboard-head"><div><span>${profile.role === 'employer' ? '고용주' : '근로자'} 회원</span><h3>${escapeHtml(profile.full_name || session.user.email)}</h3><p>${escapeHtml(session.user.email)}</p></div><button type="button" class="button ghost" id="sign-out">로그아웃</button></div>
+      <div class="dashboard-head"><div><span>${roleLabel} 회원</span><h3>${escapeHtml(profile.full_name || session.user.email)}</h3><p>${escapeHtml(session.user.email)}</p></div><button type="button" class="button ghost" id="sign-out">로그아웃</button></div>
       ${notice ? `<div class="dashboard-notice">${escapeHtml(notice)}</div>` : ''}
       ${hasLoadWarning ? '<div class="dashboard-warning"><p><b>로그인은 정상적으로 완료되었습니다.</b><br>일부 정보를 잠시 불러오지 못했습니다.</p><button type="button" id="retry-dashboard">다시 불러오기</button></div>' : ''}
       ${mvpContent}
+      ${betaContent}
       <div class="reservation-grid">
         <form id="reservation-form" class="reservation-form">
           <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
@@ -548,6 +609,97 @@ async function renderDashboard(session) {
         button.disabled = false;
       }
     });
+
+    memberApp.querySelector('#beta-participant-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const option = element.querySelector(`option[value="${formText(form, 'profile_id')}"]`);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      setFormMessage(element, '참여자 지정을 저장하는 중입니다…');
+      try {
+        await saveClosedBetaParticipant({ profileId: formText(form, 'profile_id'), participantRole: option.dataset.role });
+        dashboardNotice = '클로즈 베타 참여자 지정이 DB에 저장되고 다시 조회되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
+
+    memberApp.querySelector('#manual-introduction-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      setFormMessage(element, '수동 소개 내역을 저장하는 중입니다…');
+      try {
+        await createManualIntroduction({
+          jobPostingId: formText(form, 'job_posting_id'), workerId: formText(form, 'worker_id'),
+          employerFeedback: formText(form, 'employer_feedback'), comparisonNotes: formText(form, 'comparison_notes'),
+          selectionReason: formText(form, 'selection_reason')
+        });
+        dashboardNotice = '운영자의 수동 비교·선택과 소개 내역이 DB에 저장되고 다시 조회되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
+
+    memberApp.querySelectorAll('.beta-contract-form').forEach((contractForm) => contractForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const status = formText(form, 'status');
+      const method = formText(form, 'confirmation_method');
+      if (status === 'confirmed' && !method) return setFormMessage(element, '체결 확인에는 확인 방법·근거가 필요합니다.', 'error');
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveContractConfirmation({ introductionId: element.dataset.introductionId, status, confirmationMethod: method, evidenceReference: formText(form, 'evidence_reference') });
+        dashboardNotice = '근로계약 체결 확인 상태가 DB에 저장되고 다시 조회되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    }));
+
+    memberApp.querySelectorAll('.beta-payment-form').forEach((paymentForm) => paymentForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const submitter = event.submitter;
+      submitter.disabled = true;
+      try {
+        await savePaymentPreparation({ introductionId: element.dataset.introductionId, payerProfileId: element.dataset.payerProfileId, chargeStatus: submitter.value });
+        dashboardNotice = submitter.value === 'test_completed'
+          ? '실제 청구 없이 테스트 결제 흐름 완료 상태가 DB에 저장되었습니다.'
+          : '테스트 결제수단 등록과 결제 동의가 DB에 저장되었습니다. 실제 청구는 없습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `처리되지 않았습니다: ${error.message}`, 'error');
+        submitter.disabled = false;
+      }
+    }));
+
+    memberApp.querySelectorAll('.beta-outcome-form').forEach((outcomeForm) => outcomeForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveWorkOutcome({ introductionId: element.dataset.introductionId, attendanceStatus: formText(form, 'attendance_status'), firstShiftStatus: formText(form, 'first_shift_status'), contractOutcome: formText(form, 'contract_outcome'), outcomeNotes: formText(form, 'outcome_notes') });
+        dashboardNotice = '출근·첫 근무·계약기간 결과가 DB에 저장되고 다시 조회되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    }));
 
     memberApp.querySelector('#reservation-form').addEventListener('submit', async (event) => {
       event.preventDefault();

@@ -5,6 +5,7 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const isSupabaseConfigured = Boolean(url && publishableKey && !url.includes('YOUR_PROJECT'));
 export const isJobInfoMvpDevelopment = import.meta.env.VITE_JOB_INFO_MVP_MODE === 'development';
+export const isClosedBetaDevelopment = import.meta.env.VITE_CLOSED_BETA_MODE === 'development';
 export const draftConsentVersion = 'mvp-draft-2026-09-15';
 
 export const supabase = isSupabaseConfigured
@@ -282,6 +283,111 @@ export async function cancelReservation(id) {
     .eq('id', id)
     .select()
     .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadClosedBetaConsole() {
+  const client = requireSupabase();
+  const [profiles, participants, jobs, workers, introductions] = await Promise.all([
+    client.from('profiles').select('id, role, full_name').in('role', ['worker', 'employer']).order('created_at'),
+    client.from('closed_beta_participants').select('profile_id, participant_role, active, operating_mode, created_at'),
+    client.from('job_postings').select('id, employer_id, title, job_category, city, company_name, workplace_address, employment_type, work_days, work_hours, wage_type, wage_amount, wage_notes, description, actual_conditions_confirmed, employer:employers!job_postings_employer_id_fkey(profile_id, company_name)'),
+    client.from('workers').select('id, profile_id, job_category, city, experience_months, availability_date, experience_summary, desired_conditions, profile:profiles!workers_profile_id_fkey(full_name)'),
+    client.from('manual_introductions').select('id, job_posting_id, worker_id, operator_id, employer_feedback, comparison_notes, selection_reason, conditions_reviewed_at, status, operating_mode, introduced_at, created_at, contract:contract_confirmations(id, status, confirmation_method, evidence_reference, confirmed_at), payment:payment_preparations(id, payer_profile_id, payment_method_status, payment_consent_status, amount_krw, price_basis, provider_mode, charge_status, test_completed_at), outcome:work_outcomes(id, attendance_status, first_shift_status, contract_outcome, outcome_notes, recorded_at)').order('created_at', { ascending: false })
+  ]);
+  for (const result of [profiles, participants, jobs, workers, introductions]) {
+    if (result.error) throw result.error;
+  }
+  return {
+    profiles: profiles.data ?? [], participants: participants.data ?? [], jobs: jobs.data ?? [],
+    workers: workers.data ?? [], introductions: introductions.data ?? []
+  };
+}
+
+export async function saveClosedBetaParticipant({ profileId, participantRole, active = true }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('closed_beta_participants').upsert({
+    profile_id: profileId,
+    participant_role: participantRole,
+    approved_by: user.id,
+    active,
+    operating_mode: 'development',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'profile_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createManualIntroduction(values) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('manual_introductions').insert({
+    job_posting_id: values.jobPostingId,
+    worker_id: values.workerId,
+    operator_id: user.id,
+    employer_feedback: values.employerFeedback || null,
+    comparison_notes: values.comparisonNotes,
+    selection_reason: values.selectionReason,
+    conditions_reviewed_at: new Date().toISOString(),
+    status: 'selected',
+    operating_mode: 'development'
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveContractConfirmation({ introductionId, status, confirmationMethod, evidenceReference }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const confirmed = status === 'confirmed';
+  const { data, error } = await client.from('contract_confirmations').upsert({
+    introduction_id: introductionId,
+    status,
+    confirmation_method: confirmationMethod || null,
+    evidence_reference: evidenceReference || null,
+    confirmed_by: confirmed ? user.id : null,
+    confirmed_at: confirmed ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'introduction_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function savePaymentPreparation({ introductionId, payerProfileId, chargeStatus }) {
+  const client = requireSupabase();
+  const testCompleted = chargeStatus === 'test_completed';
+  const { data, error } = await client.from('payment_preparations').upsert({
+    introduction_id: introductionId,
+    payer_profile_id: payerProfileId,
+    payment_method_status: 'test_registered',
+    payment_consent_status: 'agreed',
+    consented_at: new Date().toISOString(),
+    amount_krw: 19000,
+    price_basis: 'temporary_validation',
+    provider_mode: 'unconnected_test',
+    charge_status: chargeStatus,
+    test_completed_at: testCompleted ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'introduction_id' }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveWorkOutcome(values) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('work_outcomes').upsert({
+    introduction_id: values.introductionId,
+    attendance_status: values.attendanceStatus,
+    first_shift_status: values.firstShiftStatus,
+    contract_outcome: values.contractOutcome,
+    outcome_notes: values.outcomeNotes || null,
+    recorded_by: user.id,
+    recorded_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'introduction_id' }).select().single();
   if (error) throw error;
   return data;
 }
