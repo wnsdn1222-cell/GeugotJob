@@ -1,3 +1,6 @@
+// 이 파일의 기록은 실제 회원/이용 DB와 연결되지 않은 시연용 가상 데이터입니다.
+export const legacyDemoDataLabel = '시연용 가상 데이터';
+
 export const workers = [
   {
     id: 'worker-001', name: '김민준', initials: '김', nationality: '대한민국', role: '물류 · 피킹',
