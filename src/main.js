@@ -17,6 +17,7 @@ import {
   isJobInfoMvpDevelopment,
   isClosedBetaDevelopment,
   isOpenBetaDevelopment,
+  isServiceLaunchDevelopment,
   loadClosedBetaConsole,
   loadOpenBetaConsole,
   loadOpenBetaMemberData,
@@ -30,6 +31,11 @@ import {
   saveReuseIntention,
   saveMatchingCriterion,
   saveOperatingCost,
+  loadDemoRecords,
+  loadServiceLaunchConsole,
+  loadServiceLaunchMemberData,
+  syncServiceCase,
+  saveEmployerFeedback,
   draftConsentVersion,
   loadReservations,
   createReservation,
@@ -86,6 +92,7 @@ app.innerHTML = `
     </section>
 
     <section class="signal-strip" aria-label="시연용 가상 이용 실적"><p><em class="demo-badge dark">${demoDataLabel}</em>가상의 이용 흐름을<br><strong>한 화면에서 확인하세요.</strong></p>${demoUsageStats.map((stat) => `<div><strong>${stat.value}</strong><span>${stat.label}</span></div>`).join('')}</section>
+    <section class="demo-directory section" aria-labelledby="demo-directory-title"><div class="section-heading"><div><span>DEMO RECORD DIRECTORY</span><em class="demo-badge">${demoDataLabel}</em><h2 id="demo-directory-title">가상 레코드를 실제 회원과 분리했습니다.</h2></div><p>아래 사업장과 근로자는 화면 시연을 위한 별도 Supabase 레코드입니다. 로그인 회원, 소개 실적, 결제 통계에는 포함되지 않습니다.</p></div><div id="demo-record-directory" class="demo-record-grid"><p class="empty-state">가상 레코드를 불러오는 중입니다…</p></div></section>
 
     <section class="section intro" id="how">
       <div class="section-kicker"><span>01</span><p class="eyebrow">HOW IT WORKS</p></div>
@@ -143,6 +150,20 @@ let dashboardNotice = '';
 const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 })[character]);
+
+async function renderDemoRecords() {
+  const panel = document.querySelector('#demo-record-directory');
+  if (!panel) return;
+  try {
+    const data = await loadDemoRecords();
+    if (!data) throw new Error('Supabase 연결이 설정되지 않았습니다.');
+    panel.innerHTML = `<div class="demo-record-column"><div class="list-head"><span>가상 고용주</span><b>${data.employerCount}건</b></div>${data.employers.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(item.city)} · ${escapeHtml(item.industry)}</p></article>`).join('')}</div><div class="demo-record-column"><div class="list-head"><span>가상 근로자</span><b>${data.workerCount}건</b></div>${data.workers.map((item) => `<article><small>${escapeHtml(item.data_label)} · ${escapeHtml(item.demo_code)}</small><b>${escapeHtml(item.display_name)}</b><p>${escapeHtml(item.city)} · ${escapeHtml(item.job_category)} · 가상 경력 ${Number(item.experience_months)}개월</p></article>`).join('')}</div>`;
+  } catch (error) {
+    panel.innerHTML = `<p class="empty-state">가상 레코드를 불러오지 못했습니다. 실제 데이터로 표시하지 않습니다.<br>${escapeHtml(error.message)}</p>`;
+  }
+}
+
+renderDemoRecords();
 
 const reservationLabels = {
   interview: '면접', consultation: '상담', work_start: '첫 출근', other: '기타',
@@ -492,15 +513,55 @@ function openBetaMemberPanel(data, role) {
   return `<section class="open-beta-console"><div class="compliance-banner"><b>시제품 2 · 실제 기록 영역</b><p>표시된 거리와 상태는 Supabase에 저장된 실제 기록만 사용합니다. 없는 값은 미판별 또는 미확인으로 표시합니다.</p></div><div class="beta-records">${introCards || '<p class="empty-state">연결된 실제 소개 기록이 없습니다.</p>'}</div><form id="reuse-intention-form" class="mvp-card mvp-form"><div class="card-title"><span>서비스 이용 의향</span><h3>재이용 여부 기록</h3></div><label>관련 소개<select name="introduction_id"><option value="">전체 서비스</option>${data.introductions.map((item) => `<option value="${item.id}">${escapeHtml(item.id.slice(0, 8))}</option>`).join('')}</select></label><label>재이용 의향<select name="response"><option value="undecided">미정</option><option value="yes">재이용 의향 있음</option><option value="no">재이용 의향 없음</option></select></label><label>의견<textarea name="response_note" maxlength="1000" rows="2"></textarea></label><button class="button" type="submit">실제 응답 저장</button><p class="form-status" role="status"></p></form></section>`;
 }
 
+function serviceLaunchAdminConsole(data) {
+  const readiness = data.readiness || {};
+  const casesByIntro = new Map(data.serviceCases.map((item) => [item.introduction_id, item]));
+  const paidRecords = data.feePayments.filter((item) => item.status === 'paid');
+  const reuseRecords = data.reuseIntentions.filter((item) => item.response !== 'undecided');
+  const caseRows = data.introductions.map((intro) => {
+    const serviceCase = casesByIntro.get(intro.id);
+    const events = serviceCase ? data.caseEvents.filter((event) => event.service_case_id === serviceCase.id) : [];
+    return `<article class="launch-case"><div><small>소개 ${escapeHtml(intro.id.slice(0, 8))}</small><b>${escapeHtml(serviceCase?.stage || '정식 흐름 미연결')}</b><p>${events.length ? `${events.length}개 단계 이력` : '단계 이력 없음'}</p></div><button type="button" class="button sync-service-case" data-introduction-id="${intro.id}">현재 기록과 동기화</button><p class="form-status" role="status"></p></article>`;
+  }).join('');
+  return `<section class="service-launch-console">
+    <div class="compliance-banner"><b>서비스 런치 준비 · 관리자 개발 검증</b><p>수동 소개 → 계약 확인 → 근무 결과를 하나의 서비스 건과 변경 이력으로 연결합니다. 근로계약·업무 지시·임금 지급의 당사자는 고용주와 근로자이며 플랫폼은 임금을 보관하거나 지급하지 않습니다.</p></div>
+    <div class="open-beta-readiness">
+      <article><span>사업 등록</span><b>${readiness.paid_operations_enabled ? '확인됨' : '확인 필요'}</b><small>확인 전 production 서비스 건 생성 차단</small></article>
+      <article><span>정식 수수료</span><b>${readiness.confirmed_fee_amount_krw ? `${Number(readiness.confirmed_fee_amount_krw).toLocaleString('ko-KR')}원` : '미확정'}</b><small>${readiness.confirmed_fee_policy_version ? escapeHtml(readiness.confirmed_fee_policy_version) : '19,000원은 임시 검증값 유지'}</small></article>
+      <article><span>결제 연동</span><b>${readiness.payment_integration_verified ? '검증됨' : '연동 필요'}</b><small>서버 제공자·웹훅 검증 전 paid 저장 차단</small></article>
+      <article><span>AI 자동화</span><b>고도화 계획</b><small>데이터 충분성·모델 성능 기준 미정</small></article>
+    </div>
+    <div class="open-beta-stats"><article><span>정식 흐름 연결</span><b>${data.serviceCases.length ? `${data.serviceCases.length}건` : '미집계'}</b></article><article><span>확인된 실제 결제</span><b>${paidRecords.length ? `${paidRecords.length}건` : '미집계'}</b></article><article><span>재이용 응답</span><b>${reuseRecords.length ? `${reuseRecords.length}건` : '미집계'}</b></article></div>
+    <div class="beta-records"><div class="list-head"><span>수동 소개·계약·근무 결과 연결</span><b>${data.introductions.length}건</b></div>${caseRows || '<p class="empty-state">연결할 실제 수동 소개 기록이 없습니다.</p>'}</div>
+    <div class="beta-comparison"><div><h4>누적 고용주 의견</h4>${data.employerFeedback.length ? data.employerFeedback.map((item) => `<article><b>${escapeHtml(item.feedback_type)}</b><p>${escapeHtml(item.feedback_text)}<br>${new Date(item.created_at).toLocaleDateString('ko-KR')}</p></article>`).join('') : '<p>실제 고용주 의견이 없어 미집계입니다.</p>'}</div><div><h4>운영 기록</h4><article><b>근무 결과 ${data.introductions.filter((item) => oneRelation(item.outcome)).length}건</b><p>계약기간 이행률은 기준 미정으로 계산하지 않습니다.</p></article><article><b>운영비용 ${data.operatingCosts.length ? `${data.operatingCosts.length}건` : '미집계'}</b><p>실제 입력된 비용만 합산합니다.</p></article></div></div>
+    <p class="beta-criteria-note">정식 수수료가 확정되어 금액·정책 버전·확인일이 모두 설정되기 전에는 실제 결제 완료를 기록할 수 없습니다. 19,000원은 기존 무청구 테스트 준비 기록에만 남아 있습니다.</p>
+  </section>`;
+}
+
+function serviceLaunchMemberPanel(data, role) {
+  const casesByIntro = new Map(data.serviceCases.map((item) => [item.introduction_id, item]));
+  const outcomeByIntro = new Map(data.introductions.map((item) => [item.id, oneRelation(item.outcome)]));
+  const rows = data.introductions.map((intro) => {
+    const job = oneRelation(intro.job) || {};
+    const serviceCase = casesByIntro.get(intro.id);
+    const events = serviceCase ? data.caseEvents.filter((event) => event.service_case_id === serviceCase.id) : [];
+    const outcome = outcomeByIntro.get(intro.id);
+    return `<article class="beta-record"><div class="beta-record-head"><div><span>직접 체결 서비스 건</span><h4>${escapeHtml(job.company_name || '사업장')} · ${escapeHtml(job.title || '공고')}</h4></div><b>${escapeHtml(serviceCase?.stage || '준비 중')}</b></div><p><strong>단계 이력</strong>${events.length ? events.map((event) => escapeHtml(event.to_stage)).join(' → ') : '아직 없음'}</p><p><strong>근무 결과</strong>${escapeHtml(outcome?.contract_outcome || '미확인')}</p></article>`;
+  }).join('');
+  const employerForm = role === 'employer' && data.introductions.length ? `<form id="employer-feedback-form" class="mvp-card mvp-form"><div class="card-title"><span>계속 축적되는 실제 기록</span><h3>고용주 의견 추가</h3></div><label>소개 기록<select name="introduction_id" required>${data.introductions.map((item) => `<option value="${item.id}" data-outcome-id="${oneRelation(item.outcome)?.id || ''}">${escapeHtml(item.id.slice(0, 8))}</option>`).join('')}</select></label><label>의견 구분<select name="feedback_type"><option value="introduction">소개</option><option value="contract">계약</option><option value="work_progress">근무 진행</option><option value="contract_completion">계약기간 결과</option><option value="reuse">재이용</option></select></label><label>의견<textarea name="feedback_text" maxlength="2000" rows="3" required></textarea></label><button class="button" type="submit">실제 의견 기록</button><p class="form-status" role="status"></p></form>` : '';
+  return `<section class="service-launch-console"><div class="compliance-banner"><b>정식 서비스 흐름 준비</b><p>근로계약은 고용주와 근로자가 직접 체결하고, 근무 지시와 임금 지급은 고용주가 수행합니다. 플랫폼은 임금을 보관하거나 대신 지급하지 않습니다.</p></div><div class="beta-records">${rows || '<p class="empty-state">연결된 실제 서비스 건이 없습니다.</p>'}</div>${employerForm}</section>`;
+}
+
 async function renderDashboard(session) {
   memberApp.innerHTML = '<p class="member-loading">회원 정보와 저장된 데이터를 불러오는 중입니다…</p>';
   try {
-    const [profileResult, reservationsResult, mvpResult, betaResult, openBetaResult] = await Promise.allSettled([
+    const [profileResult, reservationsResult, mvpResult, betaResult, openBetaResult, launchResult] = await Promise.allSettled([
       getMyProfile(),
       loadReservations(),
       isJobInfoMvpDevelopment ? getMyProfile().then((profile) => loadMvpData(profile.role)) : Promise.resolve(null),
       isClosedBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadClosedBetaConsole() : null) : Promise.resolve(null),
-      isOpenBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadOpenBetaConsole() : loadOpenBetaMemberData()) : Promise.resolve(null)
+      isOpenBetaDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadOpenBetaConsole() : loadOpenBetaMemberData()) : Promise.resolve(null),
+      isServiceLaunchDevelopment ? getMyProfile().then((profile) => profile.role === 'admin' ? loadServiceLaunchConsole() : loadServiceLaunchMemberData()) : Promise.resolve(null)
     ]);
     const fallbackRole = session.user.user_metadata?.role === 'employer' ? 'employer' : 'worker';
     const profile = profileResult.status === 'fulfilled'
@@ -510,7 +571,8 @@ async function renderDashboard(session) {
     const mvpData = mvpResult.status === 'fulfilled' ? mvpResult.value : null;
     const betaData = betaResult.status === 'fulfilled' ? betaResult.value : null;
     const openBetaData = openBetaResult.status === 'fulfilled' ? openBetaResult.value : null;
-    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected') || (isOpenBetaDevelopment && openBetaResult.status === 'rejected');
+    const launchData = launchResult.status === 'fulfilled' ? launchResult.value : null;
+    const hasLoadWarning = profileResult.status === 'rejected' || reservationsResult.status === 'rejected' || (isJobInfoMvpDevelopment && mvpResult.status === 'rejected') || (isClosedBetaDevelopment && profile.role === 'admin' && betaResult.status === 'rejected') || (isOpenBetaDevelopment && openBetaResult.status === 'rejected') || (isServiceLaunchDevelopment && launchResult.status === 'rejected');
     const mvpContent = isJobInfoMvpDevelopment
       ? (mvpData ? (profile.role === 'employer' ? employerMvp(profile, mvpData) : workerMvp(profile, mvpData)) : '<div class="dashboard-warning"><p><b>MVP 데이터를 불러오지 못했습니다.</b><br>저장 기능은 실행하지 않았습니다.</p><button type="button" id="retry-mvp">다시 불러오기</button></div>')
       : '<div class="compliance-banner locked"><b>직업정보 MVP 준비 완료 · 운영 잠금</b><p>직업정보제공사업 신고 완료가 확인되기 전에는 공고 등록·지원·직접 연락 기능을 운영하지 않습니다. 개발 환경에서만 기능을 검증할 수 있습니다.</p></div>';
@@ -520,6 +582,9 @@ async function renderDashboard(session) {
     const openBetaContent = isOpenBetaDevelopment
       ? (openBetaData ? (profile.role === 'admin' ? openBetaAdminConsole(openBetaData) : openBetaMemberPanel(openBetaData, profile.role)) : '<div class="dashboard-warning"><p><b>오픈 베타 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
       : '<div class="compliance-banner locked"><b>시제품 2 오픈 베타 · 운영 잠금</b><p>근거리 기준, 미지급 확정·이용 제한 정책, 유료직업소개사업 등록과 실결제 연동이 확인되지 않았습니다. 실제 데이터 구조는 준비됐지만 운영 기능은 활성화하지 않습니다.</p></div>';
+    const launchContent = isServiceLaunchDevelopment
+      ? (launchData ? (profile.role === 'admin' ? serviceLaunchAdminConsole(launchData) : serviceLaunchMemberPanel(launchData, profile.role)) : '<div class="dashboard-warning"><p><b>정식 서비스 준비 데이터를 불러오지 못했습니다.</b><br>어떤 기록도 저장하지 않았습니다.</p></div>')
+      : '<div class="compliance-banner locked"><b>서비스 런치 준비 · 운영 잠금</b><p>사업 등록, 정식 수수료, 결제 제공자와 운영 정책이 확인되기 전에는 정식 소개·결제를 활성화하지 않습니다. 근로계약과 임금 지급은 고용주와 근로자가 직접 수행합니다.</p></div>';
     const notice = dashboardNotice;
     dashboardNotice = '';
     const roleLabel = profile.role === 'admin' ? '운영자' : profile.role === 'employer' ? '고용주' : '근로자';
@@ -530,6 +595,7 @@ async function renderDashboard(session) {
       ${mvpContent}
       ${betaContent}
       ${openBetaContent}
+      ${launchContent}
       <div class="reservation-grid">
         <form id="reservation-form" class="reservation-form">
           <div><span>새 예약</span><h3>일정을 등록하세요.</h3></div>
@@ -850,6 +916,39 @@ async function renderDashboard(session) {
       try {
         await saveOperatingCost({ costDate: formText(form, 'cost_date'), category: formText(form, 'category'), amountKrw: Number(form.get('amount_krw')), description: formText(form, 'description'), evidenceReference: formText(form, 'evidence_reference') });
         dashboardNotice = '입력한 실제 운영비용이 DB에 저장되고 집계에 반영되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');
+        button.disabled = false;
+      }
+    });
+
+    memberApp.querySelectorAll('.sync-service-case').forEach((button) => button.addEventListener('click', async () => {
+      const status = button.parentElement.querySelector('.form-status');
+      button.disabled = true;
+      status.textContent = '수동 소개·계약·근무 결과를 확인하는 중입니다…';
+      try {
+        await syncServiceCase(button.dataset.introductionId);
+        dashboardNotice = '현재 실제 기록을 기준으로 서비스 단계와 변경 이력이 DB에 저장되었습니다.';
+        await renderDashboard(session);
+      } catch (error) {
+        status.textContent = `동기화되지 않았습니다: ${error.message}`;
+        status.className = 'form-status error';
+        button.disabled = false;
+      }
+    }));
+
+    memberApp.querySelector('#employer-feedback-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const element = event.currentTarget;
+      const form = new FormData(element);
+      const select = element.querySelector('[name="introduction_id"]');
+      const outcomeId = select.selectedOptions[0]?.dataset.outcomeId || '';
+      const button = element.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        await saveEmployerFeedback({ introductionId: formText(form, 'introduction_id'), workOutcomeId: outcomeId, feedbackType: formText(form, 'feedback_type'), feedbackText: formText(form, 'feedback_text') });
+        dashboardNotice = '고용주 의견이 기존 기록을 덮어쓰지 않고 새 이력으로 DB에 저장되었습니다.';
         await renderDashboard(session);
       } catch (error) {
         setFormMessage(element, `저장되지 않았습니다: ${error.message}`, 'error');

@@ -7,6 +7,7 @@ export const isSupabaseConfigured = Boolean(url && publishableKey && !url.includ
 export const isJobInfoMvpDevelopment = import.meta.env.VITE_JOB_INFO_MVP_MODE === 'development';
 export const isClosedBetaDevelopment = import.meta.env.VITE_CLOSED_BETA_MODE === 'development';
 export const isOpenBetaDevelopment = import.meta.env.VITE_OPEN_BETA_MODE === 'development';
+export const isServiceLaunchDevelopment = import.meta.env.VITE_SERVICE_LAUNCH_MODE === 'development';
 export const draftConsentVersion = 'mvp-draft-2026-09-15';
 
 export const supabase = isSupabaseConfigured
@@ -425,7 +426,7 @@ export async function loadOpenBetaMemberData() {
   const user = await getCurrentUser();
   const [{ data: worker, error: workerError }, { data: introductions, error: introductionError }, { data: reuseIntentions, error: reuseError }] = await Promise.all([
     client.from('workers').select('id').eq('profile_id', user.id).maybeSingle(),
-    client.from('manual_introductions').select('id, worker_id, status, created_at, job:job_postings!manual_introductions_job_posting_id_fkey(title, company_name), outcome:work_outcomes(contract_outcome), commute:commute_assessments(distance_km, nearby_threshold_km, is_nearby, status), wage:wage_payment_responses(id, response, response_note, responded_at, review:wage_incident_reviews(status))').order('created_at', { ascending: false }),
+    client.from('manual_introductions').select('id, worker_id, status, created_at, job:job_postings!manual_introductions_job_posting_id_fkey(title, company_name), outcome:work_outcomes(id, contract_outcome), commute:commute_assessments(distance_km, nearby_threshold_km, is_nearby, status), wage:wage_payment_responses(id, response, response_note, responded_at, review:wage_incident_reviews(status))').order('created_at', { ascending: false }),
     client.from('reuse_intentions').select('id, introduction_id, response, response_note, responded_at').eq('profile_id', user.id).order('responded_at', { ascending: false })
   ]);
   if (workerError) throw workerError;
@@ -491,6 +492,67 @@ export async function saveOperatingCost({ costDate, category, amountKrw, descrip
     amount_krw: amountKrw,
     description: description || null,
     evidence_reference: evidenceReference || null,
+    recorded_by: user.id
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadDemoRecords() {
+  if (!supabase) return null;
+  const [employers, workers] = await Promise.all([
+    supabase.from('demo_employers').select('id, demo_code, display_name, city, industry, data_label', { count: 'exact' }).order('id').limit(6),
+    supabase.from('demo_workers').select('id, demo_code, display_name, city, job_category, experience_months, data_label', { count: 'exact' }).order('id').limit(6)
+  ]);
+  if (employers.error) throw employers.error;
+  if (workers.error) throw workers.error;
+  return {
+    employerCount: employers.count ?? 0,
+    workerCount: workers.count ?? 0,
+    employers: employers.data ?? [],
+    workers: workers.data ?? []
+  };
+}
+
+export async function loadServiceLaunchConsole() {
+  const client = requireSupabase();
+  const [openBeta, cases, events, feedback] = await Promise.all([
+    loadOpenBetaConsole(),
+    client.from('service_cases').select('id, introduction_id, stage, operating_mode, created_at, updated_at').order('updated_at', { ascending: false }),
+    client.from('service_case_events').select('id, service_case_id, from_stage, to_stage, source, created_at').order('created_at', { ascending: false }),
+    client.from('employer_feedback_records').select('id, introduction_id, work_outcome_id, feedback_type, feedback_text, recorded_by, created_at').order('created_at', { ascending: false })
+  ]);
+  for (const result of [cases, events, feedback]) if (result.error) throw result.error;
+  return { ...openBeta, serviceCases: cases.data ?? [], caseEvents: events.data ?? [], employerFeedback: feedback.data ?? [] };
+}
+
+export async function loadServiceLaunchMemberData() {
+  const client = requireSupabase();
+  const [openBeta, cases, events, feedback] = await Promise.all([
+    loadOpenBetaMemberData(),
+    client.from('service_cases').select('id, introduction_id, stage, operating_mode, created_at, updated_at').order('updated_at', { ascending: false }),
+    client.from('service_case_events').select('id, service_case_id, from_stage, to_stage, source, created_at').order('created_at', { ascending: false }),
+    client.from('employer_feedback_records').select('id, introduction_id, feedback_type, feedback_text, created_at').order('created_at', { ascending: false })
+  ]);
+  for (const result of [cases, events, feedback]) if (result.error) throw result.error;
+  return { ...openBeta, serviceCases: cases.data ?? [], caseEvents: events.data ?? [], employerFeedback: feedback.data ?? [] };
+}
+
+export async function syncServiceCase(introductionId) {
+  const client = requireSupabase();
+  const { data, error } = await client.rpc('sync_service_case', { p_introduction_id: introductionId, p_operating_mode: 'development' });
+  if (error) throw error;
+  return data;
+}
+
+export async function saveEmployerFeedback({ introductionId, workOutcomeId, feedbackType, feedbackText }) {
+  const client = requireSupabase();
+  const user = await getCurrentUser();
+  const { data, error } = await client.from('employer_feedback_records').insert({
+    introduction_id: introductionId,
+    work_outcome_id: workOutcomeId || null,
+    feedback_type: feedbackType,
+    feedback_text: feedbackText,
     recorded_by: user.id
   }).select().single();
   if (error) throw error;
