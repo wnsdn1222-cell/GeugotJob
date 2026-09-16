@@ -20,6 +20,7 @@ test('zero coordinates work, invalid inputs and unconfigured thresholds do not i
   assert.equal(thresholdNumber(''),null);
   for(const v of [0,-1,'NaN',Infinity]) assert.throws(()=>thresholdNumber(v));
   assert.equal(distanceLabel(null),'거리 확인 불가');
+  assert.equal(distanceLabel({ status:'configuration_required', distance_km:0.5, is_nearby:null }), '직선거리 0.500km · 기준 거리 설정 필요');
 });
 test('wage response is worker testimony, and unfinished work is not eligible',()=>{
   assert.equal(wageLabel(null),'미응답');
@@ -35,10 +36,11 @@ test('manual comparison has five requested criteria without synthetic conditions
   assert.equal(items[4][1],'미등록');
   assert.match(items[1][1],/거리 확인 불가/);
 });
-test('local coordinate form is disclosed as device-only, without server collection',()=>{
-  assert.match(employmentSection(),/좌표를 서버에 보내거나 저장하지/);
-  assert.match(employmentSection(),/사업장 위도/);
-  assert.match(employmentSection(),/근로자의 통근 출발 위치/);
+test('location is collected from the device only after consent, without manual coordinate entry',()=>{
+  assert.match(employmentSection(),/현재 위치 자동 저장/);
+  assert.match(employmentSection(),/좌표 입력 없이/);
+  assert.doesNotMatch(employmentSection(),/사업장 위도/);
+  assert.doesNotMatch(employmentSection(),/근로자의 통근 출발 위치/);
 });
 
 function clientFixture({error=false,role='worker'}={}){

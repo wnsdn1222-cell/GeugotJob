@@ -144,6 +144,9 @@ do $$ declare r jsonb; begin
   r:=public.save_commute_location((select j1 from test_ids),(select w1 from test_ids),0.005,0,'TEST_ONLY');
   if (r->>'expires_at')::timestamptz is distinct from now()+interval '90 days' then raise exception 'FAIL 90 day retention'; end if;
   if (public.employment_cases()->0->'own_location'->>'latitude')::numeric is distinct from 0.005 then raise exception 'FAIL saved location reload'; end if;
+  if public.employment_cases()->0->'commute'->>'distance_method' is distinct from 'straight_line_haversine' then raise exception 'FAIL automatic straight line calculation'; end if;
+  if (public.employment_cases()->0->'commute'->>'distance_km')::numeric is null then raise exception 'FAIL automatic distance result'; end if;
+  if public.employment_cases()->0->'commute'->>'status' is distinct from 'configuration_required' then raise exception 'FAIL threshold is not invented'; end if;
 end; $$;
 reset role;
 select set_config('request.jwt.claims',(select jsonb_build_object('sub',admin,'role','authenticated')::text from test_ids),true);

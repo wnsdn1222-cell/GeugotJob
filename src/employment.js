@@ -8,7 +8,7 @@ export function employmentSection() {
     <div class="section-heading"><div><span class="feature-state planned">실제 기록과 시연 분리</span><h2>수동 매칭부터<br>계약·급여 확인까지</h2></div><p>계약은 검증된 체결 근거로만 확인합니다. 급여 기록은 근로자의 응답이며, 미지급 확정이나 자동 차단을 의미하지 않습니다.</p></div>
     <div class="expansion-modes"><button type="button" data-employment-mode="actual" aria-pressed="true">내 실제 근무 건</button><button type="button" data-employment-mode="demo" aria-pressed="false">시연용 예시 체험</button></div>
     <p id="employment-notice" role="status" class="employment-notice"></p><div id="employment-content" aria-live="polite"></div>
-    <form id="local-distance-form" class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 현재 기기에서만 계산</span><h3>실제 좌표로 직선거리 확인</h3><p>실제 좌표를 직접 입력할 수 있습니다. 이 계산기는 좌표를 서버에 보내거나 저장하지 않으며 다른 이용자에게 공개하지 않습니다. 새로고침하면 입력값이 사라집니다. 실제 이동거리·통근시간 계산은 아닙니다.</p><div class="employment-grid"><fieldset><legend>사업장 위치</legend><label>사업장 위도<input name="job_lat" type="number" step="any" min="-90" max="90" required></label><label>사업장 경도<input name="job_lon" type="number" step="any" min="-180" max="180" required></label></fieldset><fieldset><legend>근로자의 통근 출발 위치</legend><label>출발 위치 위도<input name="worker_lat" type="number" step="any" min="-90" max="90" required></label><label>출발 위치 경도<input name="worker_lon" type="number" step="any" min="-180" max="180" required></label></fieldset></div><label>판별 기준 거리 (km)<input name="threshold" type="number" min="0.001" step="any" required placeholder="고정 기준 없음 · 직접 입력"></label><label class="employment-checkbox"><input name="consent" type="checkbox" required>제공 권한이 있는 좌표를 입력하며 현재 기기에서만 거리 계산하는 데 동의합니다.</label><button type="submit" class="button lime">직선거리 계산</button><button type="reset" class="button">입력 좌표 지우기</button><p id="local-distance-result" role="status">거리 확인 불가 · 위치와 기준을 입력하세요.</p></form>
+    <div class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 자동 위치 가져오기</span><h3>좌표 입력 없이 직선거리 확인</h3><p>로그인한 고용주와 근로자가 각자의 기기에서 위치 제공에 동의하고 ‘현재 위치 자동 저장’을 누르면, 브라우저가 좌표를 가져와 서버에 저장합니다. 두 위치가 저장되면 직선거리가 자동 계산됩니다. 정확한 좌표는 상대방에게 보이지 않습니다.</p><p>지도 이동거리·통근시간은 지도 API 연결 전에는 계산하지 않습니다. 현재는 직선거리만 표시합니다.</p><a class="button lime" href="#member" data-expansion-login>로그인 후 자동 위치 저장</a></div>
   </section>`;
 }
 
@@ -20,6 +20,14 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
   let selectedJob = '', selectedWorker = '', threshold = '', feedback = '', reason = '', notes = '', assessment = null;
   let previewEpoch = 0;
   const report = text => { notice.textContent = text; };
+  const currentPosition = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('이 기기 또는 브라우저는 위치 자동 가져오기를 지원하지 않습니다.'));
+    navigator.geolocation.getCurrentPosition(
+      position => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+      error => reject(new Error({ 1:'위치 권한이 허용되지 않았습니다.', 2:'현재 위치를 확인할 수 없습니다.', 3:'위치 확인 시간이 초과되었습니다.' }[error.code] || '현재 위치를 확인할 수 없습니다.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
   const demoWorker = () => demoData?.workers.find(w => String(w.id) === String(demo.demo_worker_id));
   const demoEmployer = () => demoData?.employers.find(e => String(e.id) === String(demo.demo_employer_id));
   function actualHTML() {
@@ -41,7 +49,7 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
       <div><h4>근로자가 응답한 지급 여부</h4><b>${esc(wageLabel(wage?.response))}</b><p>응답 시점: ${esc(formatTime(wage?.responded_at))}<br>${esc(wage?.response_note || '')}</p>
       ${canAnswer ? `<form data-wage-form="${item.id}" data-worker-id="${item.worker_id}"><label>근무 종료 후 응답<select name="response" required ${workEnded(item.outcome) ? '' : 'disabled'}><option value="">선택하세요</option><option value="paid" ${wage?.response === 'paid' ? 'selected' : ''}>지급받음</option><option value="not_paid" ${wage?.response === 'not_paid' ? 'selected' : ''}>아직 지급받지 못함</option></select></label><label>응답 메모<textarea name="note" maxlength="2000" rows="2">${esc(wage?.response_note)}</textarea></label><button class="button" type="submit" ${workEnded(item.outcome) ? '' : 'disabled'}>응답 저장</button><small>${workEnded(item.outcome) ? '응답만 기록합니다. 고용주를 자동 차단하지 않습니다.' : '근무 종료 결과가 기록된 후 응답할 수 있습니다.'}</small></form>` : ''}
       <details><summary>급여 응답 이력</summary>${item.wage_events.map(e=>`<p>${esc(wageLabel(e.response))} · ${esc(formatTime(e.responded_at))}</p>`).join('') || '<p>미응답</p>'}</details></div></div>
-      <div class="employment-distance"><h4>동의된 위치의 직선거리</h4><p>${esc(distanceLabel(item.commute))} · 실제 이동거리·통근시간 아님</p>${snapshot.role === 'admin' ? `<form data-assessment-form="${item.id}"><label>판별 기준 거리 (km)<input name="threshold" type="number" min="0.001" step="any" value="${esc(item.commute?.nearby_threshold_km)}" required placeholder="고정 기준 없음"></label><button class="button" type="submit">거리 판별·저장</button></form>` : ''}${item.own_location ? `<p>내 위치 저장 확인 · 동의: ${esc(formatTime(item.own_location.consented_at))}<br>삭제 예정: ${esc(formatTime(item.own_location.expires_at))}</p><details><summary>내가 저장한 좌표 (본인만 조회)</summary><p>위도 ${esc(item.own_location.latitude)} · 경도 ${esc(item.own_location.longitude)}</p></details>` : '<p>내 위치 미등록 또는 동의 철회·기간 만료</p>'}</div>
+      <div class="employment-distance"><h4>동의된 위치의 자동 직선거리</h4><p>${esc(distanceLabel(item.commute))} · 실제 이동거리·통근시간 아님</p>${snapshot.role === 'admin' ? `<form data-assessment-form="${item.id}"><label>판별 기준 거리 (km)<input name="threshold" type="number" min="0.001" step="any" value="${esc(item.commute?.nearby_threshold_km)}" required placeholder="고정 기준 없음"></label><button class="button" type="submit">거리 판별·저장</button></form>` : ''}${item.own_location ? `<p>내 위치 자동 저장 확인 · 동의: ${esc(formatTime(item.own_location.consented_at))}<br>삭제 예정: ${esc(formatTime(item.own_location.expires_at))}</p>` : '<p>내 위치 미등록 또는 동의 철회·기간 만료</p>'}<p>지도 이동거리·통근시간: 지도 API 연결 준비 중</p></div>
       <a class="employment-link" href="#member">기존 회원·면접·일정 관리로 →</a></article>`;
   }
   function eligibleData() {
@@ -60,7 +68,7 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
     if (!r.location_ready) return '<div class="expansion-callout"><b>위치정보 서버 설정 확인 필요</b><p>현재 기기에서만 계산하는 아래 입력 화면은 사용할 수 있습니다. 서버 설정을 확인하기 전에는 저장 완료로 표시하지 않습니다.</p></div>';
     const cases = snapshot.cases.filter(i => snapshot.role === 'worker' ? i.worker_profile_id === snapshot.userId : i.employer_profile_id === snapshot.userId);
     if (!cases.length) return '<div class="expansion-callout"><b>위치정보 저장·거리 결과 공유</b><p>본인에게 연결된 채용 건이 있어야 위치를 저장할 수 있습니다. 다른 회원 전체가 아닌 해당 채용 건의 당사자·운영자에게 거리 결과만 공유합니다. 정확한 좌표는 비공개이며 동의 후 90일간 보관됩니다. 실제 소개 운영은 사업 등록 확인 전 활성화하지 않았습니다.</p></div>';
-    return `<form id="employment-location-form" class="expansion-card"><h3>동의한 근무 건의 위치 제공</h3><p>${esc(r.location_consent_text)}</p><p>보유기간: ${esc(r.location_retention_days)}일 · 문안 버전: ${esc(r.location_consent_version)}</p><label>근무 건<select name="case" required>${options(cases,'',i=>i.job_title)}</select></label><div class="employment-grid"><label>출발 위치/사업장 위도<input name="lat" type="number" step="any" min="-90" max="90"></label><label>경도<input name="lon" type="number" step="any" min="-180" max="180"></label></div><label class="employment-checkbox"><input name="consent" type="checkbox">위 위치정보 제공 동의문을 읽고 동의합니다.</label><button class="button" name="action" value="save">동의하고 위치 저장</button><button class="button" name="action" value="withdraw">이 근무 건의 위치 제공 철회</button></form>`;
+    return `<form id="employment-location-form" class="expansion-card"><h3>동의한 근무 건의 현재 위치 자동 저장</h3><p>${esc(r.location_consent_text)}</p><p>보유기간: ${esc(r.location_retention_days)}일 · 문안 버전: ${esc(r.location_consent_version)}</p><label>근무 건<select name="case" required>${options(cases,'',i=>i.job_title)}</select></label><label class="employment-checkbox"><input name="consent" type="checkbox">위 위치정보 제공 동의문을 읽고 동의합니다.</label><button class="button lime" name="action" value="save">동의하고 현재 위치 자동 저장</button><button class="button" name="action" value="withdraw">이 근무 건의 위치 제공 철회</button><p>버튼을 누르면 이 기기에서 위치 권한을 요청합니다. 좌표는 직접 입력하지 않으며, 해당 근무 건의 거리 계산에만 저장·사용됩니다.</p></form>`;
   }
   function demoHTML() {
     if (!demoData) return '<p class="expansion-empty">별도 시연 DB 목록을 불러오는 중입니다.</p>';
@@ -126,13 +134,16 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
         try{await assessCommute(saved.id,thresholdNumber(f.get('threshold')));}catch(e){await reload();report(`수동 선택은 저장되었습니다. 거리 기록은 미완료: ${e.message}`);return;}
       }else if(form.id==='employment-location-form'){
         const item=snapshot.cases.find(i=>i.id===f.get('case'));const withdraw=button?.value==='withdraw';if(!item)throw new Error('근무 건을 선택하세요.');
-        if(!withdraw&&(!f.has('consent')||!f.get('lat')||!f.get('lon')))throw new Error('동의와 위치 좌표를 입력하세요.');
-        await api.saveLocation({p_job_id:item.job_posting_id,p_worker_id:snapshot.role==='worker'?item.worker_id:null,p_lat:withdraw?null:Number(f.get('lat')),p_lon:withdraw?null:Number(f.get('lon')),p_consent_version:snapshot.readiness.location_consent_version,p_withdraw:withdraw});
+        if(!withdraw&&!f.has('consent'))throw new Error('위치 제공 동의를 선택하세요.');
+        if(!withdraw) report('현재 기기 위치를 확인하고 서버 저장을 준비하고 있습니다…');
+        const position=withdraw?null:await currentPosition();
+        await api.saveLocation({p_job_id:item.job_posting_id,p_worker_id:snapshot.role==='worker'?item.worker_id:null,p_lat:position?.lat ?? null,p_lon:position?.lon ?? null,p_consent_version:snapshot.readiness.location_consent_version,p_withdraw:withdraw});
         if(epoch!==authEpoch)return;
         await reload();
         const saved=snapshot?.cases.find(i=>i.id===item.id)?.own_location;
         if(loadError || (withdraw ? !!saved : !saved)) throw new Error('위치 요청 후 재조회 확인에 실패했습니다. 다시 조회해 주세요.');
-        report(withdraw ? '위치 좌표 삭제·동의 철회를 확인했습니다. 거리 공유도 해제됩니다.' : `내 위치 저장을 재조회했습니다. ${formatTime(saved.expires_at)}부터 조회·공유가 차단되고 1분 주기로 자동 삭제됩니다. 운영자가 기준 거리로 판별한 결과만 해당 채용 건에 공유됩니다.`);
+        const commute=snapshot?.cases.find(i=>i.id===item.id)?.commute;
+        report(withdraw ? '위치 좌표 삭제·동의 철회를 확인했습니다. 거리 공유도 해제됩니다.' : `현재 위치 자동 저장을 재조회했습니다. ${distanceLabel(commute)}. ${formatTime(saved.expires_at)}부터 조회·공유가 차단되고 1분 주기로 자동 삭제됩니다.`);
         return;
       }
       if(epoch!==authEpoch)return;await reload();report(loadError?'저장은 요청되었으나 재조회에 실패했습니다. 다시 조회해 주세요.':'DB에 저장하고 다시 조회했습니다. 계약·채용·결제를 자동 확정하지 않았습니다.');
@@ -140,9 +151,6 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
     finally{if(button&&button.isConnected)button.disabled=false;}
   });
   render();
-  const distanceForm=document.querySelector('#local-distance-form');
-  distanceForm.addEventListener('submit',event=>{event.preventDefault();const f=new FormData(distanceForm);try{if(!f.has('consent'))throw new Error('기기 내 계산 동의가 필요합니다.');const result=straightLineAssessment({lat:Number(f.get('job_lat')),lon:Number(f.get('job_lon'))},{lat:Number(f.get('worker_lat')),lon:Number(f.get('worker_lon'))},f.get('threshold'));document.querySelector('#local-distance-result').textContent=`${distanceLabel(result)} · 현재 기기 계산 완료. 좌표를 전송·저장하지 않았습니다.`;}catch(e){document.querySelector('#local-distance-result').textContent=`거리 확인 불가: ${e.message}`;}});
-  distanceForm.addEventListener('reset',()=>{document.querySelector('#local-distance-result').textContent='거리 확인 불가 · 위치와 기준을 입력하세요.';});
-  function sessionChanged(session){authEpoch++;previewEpoch++;snapshot=null;demo=newDemoRun();assessment=null;selectedJob='';selectedWorker='';threshold='';feedback='';notes='';reason='';distanceForm.reset();ready=false;loadError=false;loading=!!session;report('');render();if(session)void reload();}
+  function sessionChanged(session){authEpoch++;previewEpoch++;snapshot=null;demo=newDemoRun();assessment=null;selectedJob='';selectedWorker='';threshold='';feedback='';notes='';reason='';ready=false;loadError=false;loading=!!session;report('');render();if(session)void reload();}
   if(client){client.auth.getSession().then(({data})=>{if(!ready&&authEpoch===0)sessionChanged(data.session);});client.auth.onAuthStateChange((_event,session)=>{authEpoch++;snapshot=null;demo=newDemoRun();report('');render();const epoch=authEpoch;setTimeout(()=>{if(epoch===authEpoch)sessionChanged(session);},0);});}
 }

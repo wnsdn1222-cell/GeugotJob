@@ -20,7 +20,8 @@ export function straightLineAssessment(a, b, threshold) {
   return { status: 'calculated', distance_method: 'straight_line_haversine', distance_km: distance, nearby_threshold_km: limit, is_nearby: distance <= limit };
 }
 export function distanceLabel(result) {
-  if (!result || result.distance_km == null || result.is_nearby == null) return result?.status === 'configuration_required' ? '기준 거리 설정 필요 · 거리 확인 불가' : '거리 확인 불가';
+  if (!result || result.distance_km == null) return result?.status === 'configuration_required' ? '기준 거리 설정 필요 · 거리 확인 불가' : '거리 확인 불가';
+  if (result.is_nearby == null) return `직선거리 ${Number(result.distance_km).toFixed(3)}km · 기준 거리 설정 필요`;
   return `직선거리 ${Number(result.distance_km).toFixed(3)}km · 기준 ${result.nearby_threshold_km}km ${result.is_nearby ? '이내' : '밖'}`;
 }
 // Geometric fixtures, not anyone's residence. No demo coordinate is sent to the real location API.
