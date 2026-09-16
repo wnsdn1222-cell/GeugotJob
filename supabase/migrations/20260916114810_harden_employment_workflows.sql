@@ -1,4 +1,5 @@
 -- No registration, provider, consent policy or fee is enabled by this migration.
+-- Filename aligned with the applied Supabase migration history version.
 create table private.workflow_configuration (
   singleton boolean primary key default true check(singleton),
   contract_provider text,

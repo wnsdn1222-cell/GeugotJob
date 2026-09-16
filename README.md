@@ -230,5 +230,6 @@ DB 조회는 `src/expansion-data.js`, 화면은 `src/expansion.js`에 분리했�
 - 출시/운영 필요 사항: 운영자 계정 지정, 사업 등록 확인, 전자계약 제공자와 검증 API/웹훅, 실제 업무정보 제공 동의·전체 개인정보 고지 검토.
 - 보안 점검의 기존 주의사항: [유출 비밀번호 차단 기능](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)이 꺼져 있습니다. 이번에 임의로 인증 설정을 변경하지 않았습니다.
 
-저장 구조는 `20260916114142_harden_employment_workflows.sql`, 위치 공유·만료/추가 권한 처리는
-`20260916121137_finalize_employment_guards.sql`에 있으며 두 마이그레이션을 Supabase에 적용했습니다.
+저장 구조는 `20260916114810_harden_employment_workflows.sql`, 위치 공유·만료/추가 권한 처리는
+`20260916141234_finalize_employment_guards.sql`에 있으며 두 마이그레이션을 Supabase에 적용했습니다.
+파일 버전은 실제 적용 이력과 맞췄으며 이미 적용된 DDL을 다시 실행하지 않습니다.

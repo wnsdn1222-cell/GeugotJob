@@ -1,4 +1,5 @@
 -- User-approved case-scoped distance sharing, precise coordinates private, 90-day retention.
+-- Filename aligned with the applied Supabase migration history version.
 -- No introduction registration, electronic-contract provider or payment is enabled here.
 create policy "no client configuration access" on private.workflow_configuration for all to authenticated using(false) with check(false);
 create policy "no client provider evidence access" on private.contract_provider_evidence for all to authenticated using(false) with check(false);
