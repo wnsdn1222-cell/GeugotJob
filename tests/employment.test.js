@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { straightLineAssessment, thresholdNumber, distanceLabel, wageLabel, workEnded, comparisonItems, createEmploymentApi, newDemoRun } from '../src/employment-data.js';
+import { straightLineAssessment, thresholdNumber, distanceLabel, wageLabel, workEnded, comparisonItems, createEmploymentApi, demoRoute, newDemoRun } from '../src/employment-data.js';
 import { employmentSection } from '../src/employment.js';
 
 test('distance inside, outside, exact boundary and missing coordinates are distinct',()=>{
@@ -21,6 +21,12 @@ test('zero coordinates work, invalid inputs and unconfigured thresholds do not i
   for(const v of [0,-1,'NaN',Infinity]) assert.throws(()=>thresholdNumber(v));
   assert.equal(distanceLabel(null),'거리 확인 불가');
   assert.equal(distanceLabel({ status:'configuration_required', distance_km:0.5, is_nearby:null }), '직선거리 0.500km · 기준 거리 설정 필요');
+});
+test('route figures exist only for the selected demonstration pair',()=>{
+  assert.equal(demoRoute(null,{id:2}),null);
+  assert.deepEqual(demoRoute({id:1},{id:2}),demoRoute({id:1},{id:2}));
+  assert.ok(demoRoute({id:1},{id:2}).distance_km > 0);
+  assert.ok(demoRoute({id:1},{id:2}).duration_minutes > 0);
 });
 test('wage response is worker testimony, and unfinished work is not eligible',()=>{
   assert.equal(wageLabel(null),'미응답');

@@ -24,6 +24,17 @@ export function distanceLabel(result) {
   if (result.is_nearby == null) return `직선거리 ${Number(result.distance_km).toFixed(3)}km · 기준 거리 설정 필요`;
   return `직선거리 ${Number(result.distance_km).toFixed(3)}km · 기준 ${result.nearby_threshold_km}km ${result.is_nearby ? '이내' : '밖'}`;
 }
+// These are deliberately isolated from live location records. They make the
+// prototype's route panel demonstrable without calling a map provider or
+// representing a person's real commute.
+export function demoRoute(employer, worker) {
+  if (!employer?.id || !worker?.id) return null;
+  const seed = (Number(employer.id) * 17 + Number(worker.id) * 31) >>> 0;
+  return {
+    distance_km: Number((1.8 + (seed % 73) / 10).toFixed(1)),
+    duration_minutes: 8 + (seed % 29)
+  };
+}
 // Geometric fixtures, not anyone's residence. No demo coordinate is sent to the real location API.
 export function demoLocation(id) {
   return Number(id) % 3 === 0 ? null : { lat: Number(id) % 3 === 1 ? 0.005 : 0.05, lon: 0 };

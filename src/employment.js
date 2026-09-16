@@ -1,4 +1,4 @@
-import { comparisonItems, contractLabel, demoLocation, distanceLabel, formatTime, newDemoRun, straightLineAssessment, thresholdNumber, wageLabel, workEnded } from './employment-data.js';
+import { comparisonItems, contractLabel, demoLocation, demoRoute, distanceLabel, formatTime, newDemoRun, straightLineAssessment, thresholdNumber, wageLabel, workEnded } from './employment-data.js';
 
 const esc = (value = '') => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const options = (rows, chosen, label) => rows.map(r => `<option value="${esc(r.id)}" ${String(r.id) === String(chosen) ? 'selected' : ''}>${esc(label(r))}</option>`).join('');
@@ -8,7 +8,7 @@ export function employmentSection() {
     <div class="section-heading"><div><span class="feature-state planned">실제 기록과 시연 분리</span><h2>수동 매칭부터<br>계약·급여 확인까지</h2></div><p>계약은 검증된 체결 근거로만 확인합니다. 급여 기록은 근로자의 응답이며, 미지급 확정이나 자동 차단을 의미하지 않습니다.</p></div>
     <div class="expansion-modes"><button type="button" data-employment-mode="actual" aria-pressed="true">내 실제 근무 건</button><button type="button" data-employment-mode="demo" aria-pressed="false">시연용 예시 체험</button></div>
     <p id="employment-notice" role="status" class="employment-notice"></p><div id="employment-content" aria-live="polite"></div>
-    <div class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 자동 위치 가져오기</span><h3>좌표 입력 없이 직선거리 확인</h3><p>로그인한 고용주와 근로자가 각자의 기기에서 위치 제공에 동의하고 ‘현재 위치 자동 저장’을 누르면, 브라우저가 좌표를 가져와 서버에 저장합니다. 두 위치가 저장되면 직선거리가 자동 계산됩니다. 정확한 좌표는 상대방에게 보이지 않습니다.</p><p>지도 이동거리·통근시간은 지도 API 연결 전에는 계산하지 않습니다. 현재는 직선거리만 표시합니다.</p><a class="button lime" href="#member" data-expansion-login data-login-target="#work-management">로그인 후 자동 위치 저장</a></div>
+    <div class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 자동 위치 가져오기</span><h3>좌표 입력 없이 직선거리 확인</h3><p>로그인한 고용주와 근로자가 각자의 기기에서 위치 제공에 동의하고 ‘현재 위치 자동 저장’을 누르면, 브라우저가 좌표를 가져와 서버에 저장합니다. 두 위치가 저장되면 직선거리가 자동 계산됩니다. 정확한 좌표는 상대방에게 보이지 않습니다.</p><p>카카오 모빌리티는 임시 선택 상태입니다. API 키·이용 권한을 연결하기 전에는 실제 지도 이동거리·통근시간을 계산하지 않으며, 현재는 직선거리만 표시합니다.</p><a class="button lime" href="#member" data-expansion-login data-login-target="#work-management">로그인 후 자동 위치 저장</a></div>
   </section>`;
 }
 
@@ -76,8 +76,10 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
     if (!demoData) return '<p class="expansion-empty">별도 시연 DB 목록을 불러오는 중입니다.</p>';
     const a = demoEmployer(), b = demoWorker();
     const distance = straightLineAssessment(a ? { lat:0,lon:0 } : null,b ? demoLocation(b.id) : null,demo.nearby_threshold_km);
+    const route = demoRoute(a,b);
     return `<div class="expansion-callout"><b>시연용 예시 · 실제 회원·계약·급여·거리 아님</b><p>별도 가상 인물로 운영자·근로자 화면을 체험합니다. 로그인하면 본인의 별도 시연 DB에 저장할 수 있습니다. 실제 이용 실적에는 합산하지 않습니다. 로그아웃 상태의 변경은 화면 체험이며 저장되지 않습니다.</p></div>
       <form id="employment-demo-form" class="expansion-card"><span class="feature-state demo">시연용 예시</span><h3>운영자 수동 비교 체험</h3><div class="employment-grid"><label>시연 고용주<select name="employer"><option value="">선택하세요</option>${options(demoData.employers,demo.demo_employer_id,r=>r.display_name)}</select></label><label>시연 근로자<select name="worker"><option value="">선택하세요</option>${options(demoData.workers,demo.demo_worker_id,r=>r.display_name)}</select></label></div>
+      <div class="employment-distance"><span class="feature-state demo">시연용 예시 · API 미호출</span><h3>카카오 모빌리티 경로 시연</h3>${route ? `<p>가상 이동거리 <b>${route.distance_km}km</b> · 가상 소요시간 <b>${route.duration_minutes}분</b></p>` : '<p>시연 고용주와 근로자를 선택하면 가상 경로 예시를 표시합니다.</p>'}<p>이 값은 선택한 시연용 가상 인물에만 적용한 임의 예시입니다. 카카오 모빌리티 API·실제 위치·실제 도로 경로를 사용하지 않았고, 실제 회원 기록이나 통근 판단에 저장되지 않습니다.</p></div>
       <label>판별할 기준 거리 (km)<input name="threshold" type="number" min="0.001" step="any" value="${esc(demo.nearby_threshold_km)}" placeholder="고정 기준 없음 · 직접 입력"></label><p>시연용 거리 계산: 사업장 (0, 0), 근로자 (${b && demoLocation(b.id) ? `${demoLocation(b.id).lat}, 0` : '좌표 없음'})의 검증용 임의 좌표입니다. 실제 거주지·통근 경로가 아닙니다.</p><button class="button" type="button" data-demo-compare>선택 조건 비교</button><div id="demo-employment-comparison">${rowsHtml(comparisonItems(a,b,demo.employer_feedback,distance))}</div>
       <label>고용주 의견 (시연)<textarea name="feedback" maxlength="2000">${esc(demo.employer_feedback)}</textarea></label><label>운영자 선택 근거 (시연)<textarea name="reason" maxlength="2000">${esc(demo.matching_reason)}</textarea></label>
       <div class="employment-grid"><div><h3>계약 상태 시연</h3><b>${esc(contractLabel(demo.contract_status))}</b><p>외부 연동 준비 중 · 확인 버튼을 눌러도 검증 근거 없이 완료되지 않습니다. 확인자료 접수는 체결 확인이 아닙니다.</p><button type="button" class="button" data-demo-check-contract>전자계약 체결 완료 확인</button><label>자료 상태<select name="contract_status"><option value="pending">확인 대기</option><option value="submitted" ${demo.contract_status==='submitted'?'selected':''}>시연 자료 접수</option></select></label><label>증빙 참조 (시연)<input name="evidence" maxlength="1000" value="${esc(demo.contract_evidence)}" placeholder="실제 계약 개인정보를 넣지 마세요"></label><p>계약 체결 미확인 · 결제 차단</p></div>
