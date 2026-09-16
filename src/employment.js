@@ -65,10 +65,12 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
   }
   function locationHTML() {
     const r = snapshot.readiness;
-    if (!r.location_ready) return '<div class="expansion-callout"><b>위치정보 서버 설정 확인 필요</b><p>현재 기기에서만 계산하는 아래 입력 화면은 사용할 수 있습니다. 서버 설정을 확인하기 전에는 저장 완료로 표시하지 않습니다.</p></div>';
+    if (!r.location_ready || !r.personal_location_ready) return '<div class="expansion-callout"><b>위치정보 서버 설정 확인 필요</b><p>동의 문안과 보유기간 설정을 확인하기 전에는 저장 완료로 표시하지 않습니다.</p></div>';
+    const personal = snapshot.personalLocation;
+    const personalForm = `<form id="employment-personal-location-form" class="expansion-card"><h3>로그인 후 내 위치 자동 저장</h3><p>${esc(r.personal_location_consent_text)}</p><p>보유기간: ${esc(r.location_retention_days)}일 · 문안 버전: ${esc(r.personal_location_consent_version)}</p><label class="employment-checkbox"><input name="consent" type="checkbox">위 기본 위치정보 제공 동의문을 읽고 동의합니다.</label><button class="button lime" name="action" value="save">동의하고 현재 위치 자동 저장</button><button class="button" name="action" value="withdraw">내 기본 위치 삭제</button><p>${personal?.saved ? `저장 확인: ${esc(formatTime(personal.consented_at))} · 삭제 예정: ${esc(formatTime(personal.expires_at))}` : '아직 저장된 내 기본 위치가 없습니다.'}<br>정확한 좌표는 다른 회원에게 공개되지 않으며, 채용 건별 거리 공유에는 별도 동의가 필요합니다.</p></form>`;
     const cases = snapshot.cases.filter(i => snapshot.role === 'worker' ? i.worker_profile_id === snapshot.userId : i.employer_profile_id === snapshot.userId);
-    if (!cases.length) return '<div class="expansion-callout"><b>위치정보 저장·거리 결과 공유</b><p>본인에게 연결된 채용 건이 있어야 위치를 저장할 수 있습니다. 다른 회원 전체가 아닌 해당 채용 건의 당사자·운영자에게 거리 결과만 공유합니다. 정확한 좌표는 비공개이며 동의 후 90일간 보관됩니다. 실제 소개 운영은 사업 등록 확인 전 활성화하지 않았습니다.</p></div>';
-    return `<form id="employment-location-form" class="expansion-card"><h3>동의한 근무 건의 현재 위치 자동 저장</h3><p>${esc(r.location_consent_text)}</p><p>보유기간: ${esc(r.location_retention_days)}일 · 문안 버전: ${esc(r.location_consent_version)}</p><label>근무 건<select name="case" required>${options(cases,'',i=>i.job_title)}</select></label><label class="employment-checkbox"><input name="consent" type="checkbox">위 위치정보 제공 동의문을 읽고 동의합니다.</label><button class="button lime" name="action" value="save">동의하고 현재 위치 자동 저장</button><button class="button" name="action" value="withdraw">이 근무 건의 위치 제공 철회</button><p>버튼을 누르면 이 기기에서 위치 권한을 요청합니다. 좌표는 직접 입력하지 않으며, 해당 근무 건의 거리 계산에만 저장·사용됩니다.</p></form>`;
+    if (!cases.length) return `${personalForm}<div class="expansion-callout"><b>채용 건별 거리 공유는 별도 동의</b><p>현재는 조회 가능한 채용·근무 건이 없어 직선거리를 계산하거나 다른 회원에게 거리 결과를 제공하지 않습니다. 연결된 채용 건이 생긴 뒤 별도 동의를 받습니다.</p></div>`;
+    return `${personalForm}<form id="employment-location-form" class="expansion-card"><h3>동의한 근무 건의 현재 위치 자동 저장</h3><p>${esc(r.location_consent_text)}</p><p>보유기간: ${esc(r.location_retention_days)}일 · 문안 버전: ${esc(r.location_consent_version)}</p><label>근무 건<select name="case" required>${options(cases,'',i=>i.job_title)}</select></label><label class="employment-checkbox"><input name="consent" type="checkbox">위 위치정보 제공 동의문을 읽고 동의합니다.</label><button class="button lime" name="action" value="save">동의하고 현재 위치 자동 저장</button><button class="button" name="action" value="withdraw">이 근무 건의 위치 제공 철회</button><p>버튼을 누르면 이 기기에서 위치 권한을 요청합니다. 좌표는 직접 입력하지 않으며, 해당 근무 건의 거리 계산에만 저장·사용됩니다.</p></form>`;
   }
   function demoHTML() {
     if (!demoData) return '<p class="expansion-empty">별도 시연 DB 목록을 불러오는 중입니다.</p>';
@@ -132,6 +134,18 @@ export function initEmploymentUI({ client, api, loadDemo, createManual, saveCont
         if(!j||!w)throw new Error('허용된 공고와 근로자를 선택하세요.');
         const saved=await createManual({jobPostingId:j.id,workerId:w.id,employerFeedback:f.get('feedback'),comparisonNotes:f.get('notes'),selectionReason:f.get('reason'),operatingMode:j.is_test_data&&w.is_test_data?'development':'production'});
         try{await assessCommute(saved.id,thresholdNumber(f.get('threshold')));}catch(e){await reload();report(`수동 선택은 저장되었습니다. 거리 기록은 미완료: ${e.message}`);return;}
+      }else if(form.id==='employment-personal-location-form'){
+        const withdraw=button?.value==='withdraw';
+        if(!withdraw&&!f.has('consent'))throw new Error('기본 위치정보 제공 동의를 선택하세요.');
+        if(!withdraw) report('현재 기기 위치를 확인하고 서버 저장을 준비하고 있습니다…');
+        const position=withdraw?null:await currentPosition();
+        await api.savePersonalLocation({p_lat:position?.lat ?? null,p_lon:position?.lon ?? null,p_withdraw:withdraw});
+        if(epoch!==authEpoch)return;
+        await reload();
+        const saved=snapshot?.personalLocation?.saved;
+        if(loadError || (withdraw ? saved : !saved)) throw new Error('위치 요청 후 재조회 확인에 실패했습니다. 다시 조회해 주세요.');
+        report(withdraw ? '내 기본 위치 삭제·동의 철회를 재조회했습니다.' : `내 기본 위치 자동 저장을 재조회했습니다. ${formatTime(snapshot.personalLocation.expires_at)}부터 조회가 차단되고 자동 삭제됩니다.`);
+        return;
       }else if(form.id==='employment-location-form'){
         const item=snapshot.cases.find(i=>i.id===f.get('case'));const withdraw=button?.value==='withdraw';if(!item)throw new Error('근무 건을 선택하세요.');
         if(!withdraw&&!f.has('consent'))throw new Error('위치 제공 동의를 선택하세요.');

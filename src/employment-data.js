@@ -51,12 +51,13 @@ export function createEmploymentApi(client, loadConsole) {
     async load() {
       const authUser = await user();
       const profile = unwrap(await client.from('profiles').select('role').eq('id', authUser.id).single());
-      const [cases, readiness, demo] = await Promise.all([
+      const [cases, readiness, demo, personalLocation] = await Promise.all([
         client.rpc('employment_cases'), client.rpc('workflow_readiness'),
-        client.from('workflow_demo_runs').select('*').eq('owner_profile_id', authUser.id).maybeSingle()
+        client.from('workflow_demo_runs').select('*').eq('owner_profile_id', authUser.id).maybeSingle(),
+        client.rpc('personal_location_status')
       ]);
       const consoleData = profile.role === 'admin' ? await loadConsole() : null;
-      return { userId: authUser.id, role: profile.role, cases: unwrap(cases) ?? [], readiness: unwrap(readiness), demo: unwrap(demo), consoleData };
+      return { userId: authUser.id, role: profile.role, cases: unwrap(cases) ?? [], readiness: unwrap(readiness), demo: unwrap(demo), personalLocation: unwrap(personalLocation), consoleData };
     },
     async saveDemo(values) {
       const authUser = await user();
@@ -72,6 +73,10 @@ export function createEmploymentApi(client, loadConsole) {
     async saveLocation(values) {
       await user();
       return unwrap(await client.rpc('save_commute_location', values));
+    },
+    async savePersonalLocation(values) {
+      await user();
+      return unwrap(await client.rpc('save_personal_location', values));
     }
   };
 }

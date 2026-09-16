@@ -65,6 +65,13 @@ test('workspace reads protected profile role, not editable user metadata',async(
   const {client}=clientFixture();const result=await createEmploymentApi(client,()=>{throw Error('should not query admin');}).load();
   assert.equal(result.role,'worker');assert.equal(result.consoleData,null);
 });
+test('every authenticated member uses the owner-checked personal location RPC',async()=>{
+  const {client,calls}=clientFixture();const api=createEmploymentApi(client,()=>null);
+  await api.load();
+  await api.savePersonalLocation({p_lat:37.5,p_lon:127,p_withdraw:false});
+  assert.ok(calls.includes('personal_location_status'));
+  assert.ok(calls.includes('save_personal_location'));
+});
 test('DB error never becomes a success or a synthetic empty record',async()=>{
   const {client}=clientFixture({error:true});await assert.rejects(createEmploymentApi(client,()=>null).saveDemo(newDemoRun()),/DB unavailable/);
 });

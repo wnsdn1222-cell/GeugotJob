@@ -147,6 +147,10 @@ do $$ declare r jsonb; begin
   if public.employment_cases()->0->'commute'->>'distance_method' is distinct from 'straight_line_haversine' then raise exception 'FAIL automatic straight line calculation'; end if;
   if (public.employment_cases()->0->'commute'->>'distance_km')::numeric is null then raise exception 'FAIL automatic distance result'; end if;
   if public.employment_cases()->0->'commute'->>'status' is distinct from 'configuration_required' then raise exception 'FAIL threshold is not invented'; end if;
+  r:=public.save_personal_location(0.006,0,false);
+  if (r->>'expires_at')::timestamptz is distinct from now()+interval '90 days' then raise exception 'FAIL personal location retention'; end if;
+  r:=public.personal_location_status();
+  if (r->>'saved')::boolean is not true or r ? 'latitude' or r ? 'longitude' then raise exception 'FAIL private personal location projection'; end if;
 end; $$;
 reset role;
 select set_config('request.jwt.claims',(select jsonb_build_object('sub',admin,'role','authenticated')::text from test_ids),true);
