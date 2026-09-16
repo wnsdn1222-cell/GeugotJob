@@ -86,7 +86,9 @@ export async function signOut() {
 export async function getMyProfile() {
   const client = requireSupabase();
   return retryJwtClockSkew(async () => {
-    const { data, error } = await client.from('profiles').select('id, role, full_name, phone').single();
+    const { data: authData, error: authError } = await client.auth.getUser();
+    if (authError || !authData.user) throw authError || new Error('로그인이 필요합니다.');
+    const { data, error } = await client.from('profiles').select('id, role, full_name, phone').eq('id', authData.user.id).single();
     if (error) throw error;
     return data;
   });
@@ -294,9 +296,9 @@ export async function loadClosedBetaConsole() {
   const [profiles, participants, jobs, workers, introductions] = await Promise.all([
     client.from('profiles').select('id, role, full_name').in('role', ['worker', 'employer']).order('created_at'),
     client.from('closed_beta_participants').select('profile_id, participant_role, active, operating_mode, created_at'),
-    client.from('job_postings').select('id, employer_id, title, job_category, city, company_name, workplace_address, employment_type, work_days, work_hours, wage_type, wage_amount, wage_notes, description, actual_conditions_confirmed, employer:employers!job_postings_employer_id_fkey(profile_id, company_name)'),
-    client.from('workers').select('id, profile_id, job_category, city, experience_months, availability_date, experience_summary, desired_conditions, profile:profiles!workers_profile_id_fkey(full_name)'),
-    client.from('manual_introductions').select('id, job_posting_id, worker_id, operator_id, employer_feedback, comparison_notes, selection_reason, conditions_reviewed_at, status, operating_mode, introduced_at, created_at, contract:contract_confirmations(id, status, confirmation_method, evidence_reference, confirmed_at), payment:payment_preparations(id, payer_profile_id, payment_method_status, payment_consent_status, amount_krw, price_basis, provider_mode, charge_status, test_completed_at), outcome:work_outcomes(id, attendance_status, first_shift_status, contract_outcome, outcome_notes, recorded_at)').order('created_at', { ascending: false })
+    client.from('job_postings').select('id, is_test_data, operating_mode, employer_id, title, job_category, city, company_name, workplace_address, employment_type, work_days, work_hours, wage_type, wage_amount, wage_notes, description, actual_conditions_confirmed, employer:employers!job_postings_employer_id_fkey(profile_id, company_name)'),
+    client.from('workers').select('id, is_test_data, profile_id, job_category, city, experience_months, availability_date, experience_summary, desired_conditions, profile:profiles!workers_profile_id_fkey(full_name)'),
+    client.from('manual_introductions').select('id, job_posting_id, worker_id, operator_id, employer_feedback, comparison_notes, selection_reason, conditions_reviewed_at, status, operating_mode, introduced_at, created_at, contract:contract_confirmations(id, status, confirmation_method, evidence_reference, confirmed_at, verification_source, checked_at), payment:payment_preparations(id, payer_profile_id, payment_method_status, payment_consent_status, amount_krw, price_basis, provider_mode, charge_status, test_completed_at), outcome:work_outcomes(id, attendance_status, first_shift_status, contract_outcome, outcome_notes, recorded_at)').order('created_at', { ascending: false })
   ]);
   for (const result of [profiles, participants, jobs, workers, introductions]) {
     if (result.error) throw result.error;
@@ -334,7 +336,7 @@ export async function createManualIntroduction(values) {
     selection_reason: values.selectionReason,
     conditions_reviewed_at: new Date().toISOString(),
     status: 'selected',
-    operating_mode: 'development'
+    operating_mode: values.operatingMode || 'development'
   }).select().single();
   if (error) throw error;
   return data;
@@ -342,15 +344,15 @@ export async function createManualIntroduction(values) {
 
 export async function saveContractConfirmation({ introductionId, status, confirmationMethod, evidenceReference }) {
   const client = requireSupabase();
-  const user = await getCurrentUser();
-  const confirmed = status === 'confirmed';
+  await getCurrentUser();
+  if (!['pending', 'submitted', 'rejected'].includes(status)) throw new Error('검증된 계약 기록을 확인해야 합니다. 수동으로 체결 완료 처리할 수 없습니다.');
   const { data, error } = await client.from('contract_confirmations').upsert({
     introduction_id: introductionId,
     status,
     confirmation_method: confirmationMethod || null,
     evidence_reference: evidenceReference || null,
-    confirmed_by: confirmed ? user.id : null,
-    confirmed_at: confirmed ? new Date().toISOString() : null,
+    confirmed_by: null,
+    confirmed_at: null,
     updated_at: new Date().toISOString()
   }, { onConflict: 'introduction_id' }).select().single();
   if (error) throw error;

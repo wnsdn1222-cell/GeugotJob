@@ -211,6 +211,25 @@ body,#app,#main,#main>section,#main>footer { background-color:var(--page-canvas)
 }
 
 /* Expansion pages reuse the dark canvas, lime controls and light data cards. */
+.employment-notice { position:sticky; top:0; z-index:5; padding:12px 16px; border:1px solid #536248; border-radius:10px; background:#182318; color:#e5ff95; font-size:14px; line-height:1.8; }
+.employment-notice:empty { display:none; }
+.employment-case,.employment-manual,.employment-local-distance { margin:22px 0; }
+.employment-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; margin:20px 0; }
+#work-management form label { margin:14px 0; }
+#work-management input:not([type="checkbox"]),#work-management textarea { width:100%; min-width:0; padding:12px; border:1px solid #a8b6aa; border-radius:8px; color:#142019; background:#fff; font:inherit; }
+#work-management textarea { min-height:80px; resize:vertical; }
+#work-management fieldset { min-width:0; margin:0; padding:14px; border:1px solid #b7c1b6; border-radius:10px; }
+#work-management legend,#work-management h4 { font-weight:800; }
+#work-management button { margin:6px 6px 6px 0; white-space:normal; line-height:1.6; }
+#work-management button:disabled { opacity:.5; cursor:not-allowed; }
+#work-management .employment-checkbox { display:flex; align-items:flex-start; gap:10px; line-height:1.8; }
+.employment-checkbox input { margin-top:5px; }
+.employment-comparison { margin:20px 0; }
+.employment-comparison>div { display:grid; grid-template-columns:130px minmax(0,1fr); border-bottom:1px solid #ccd6ca; padding:13px 0; gap:14px; font-size:13px; line-height:1.8; }
+.employment-comparison dt { font-weight:800; }.employment-comparison dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.employment-case details { margin-top:18px; font-size:13px; }.employment-case summary { cursor:pointer; }
+.employment-link { display:inline-block; margin-top:20px; color:#284c25; font-weight:700; }
+@media(max-width:760px){.employment-grid{grid-template-columns:minmax(0,1fr);gap:12px;}.employment-comparison>div{grid-template-columns:minmax(0,1fr);gap:4px;}}
 .expansion-section { color:#fff; padding:112px max(5vw,20px) 60px; }
 .expansion-section .section-heading { align-items:flex-start; gap:32px; }
 .expansion-section .section-heading>div { min-width:0; flex:1; }

@@ -1,7 +1,7 @@
 import { comparisonRows, summarizeWorker, outcomeSummary, selectedRecord } from './expansion-data.js';
 
 const escape = (value = '') => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const expansionNav = () => `<nav class="expansion-nav" aria-label="사업 확장 기능"><a href="#worker-information">업무정보</a><a href="#matching">AI 맞춤 매칭</a><a href="#visa">단기 비자</a><a href="#points-policy">플랫폼 포인트</a></nav>`;
+const expansionNav = () => `<nav class="expansion-nav" aria-label="사업 확장 기능"><a href="#worker-information">업무정보</a><a href="#matching">AI 맞춤 매칭</a><a href="#work-management">계약·근무 관리</a><a href="#visa">단기 비자</a><a href="#points-policy">플랫폼 포인트</a></nav>`;
 const legend = () => '<p class="expansion-legend">실제 동작: 권한 내 DB 조회 · 시연용: 별도 가상 데이터 · 개발 예정: 자동화·AI · 검토 예정: 비자·포인트</p>';
 const modeButtons = (area) => `<div class="expansion-modes" role="group" aria-label="${area === 'info' ? '업무정보' : '조건 비교'} 데이터 구분"><button type="button" data-expansion-mode="actual" data-area="${area}" aria-pressed="true">실제 저장 정보</button><button type="button" data-expansion-mode="demo" data-area="${area}" aria-pressed="false">시연용 가상 데이터</button></div>`;
 

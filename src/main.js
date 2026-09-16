@@ -1,6 +1,8 @@
 import './styles.css';
 import { workerInformationSection, matchingSection, visaSection, pointsSection, initExpansionExperience } from './expansion.js';
 import { loadExpansionSnapshot } from './expansion-data.js';
+import { employmentSection, initEmploymentUI } from './employment.js';
+import { createEmploymentApi } from './employment-data.js';
 import { demoDataLabel, prototypeTargetStats, demoRecommendation, demoInterview } from './demo-data.js';
 import {
   supabase,
@@ -107,6 +109,7 @@ app.innerHTML = `
       <div class="prototype-shell"><nav id="prototype-steps" class="prototype-steps" aria-label="시연 단계"></nav><div id="prototype-panel" class="prototype-panel" aria-live="polite"></div></div>
     </section>
 
+    ${employmentSection()}
     ${workerInformationSection()}
     ${matchingSection()}
 
@@ -118,7 +121,7 @@ app.innerHTML = `
 
     <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
-    <section class="policy-document" id="privacy-policy" aria-labelledby="privacy-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="privacy-title">개인정보 처리방침</h2><p>그곳잡은 회원가입·로그인, 회원 유형별 서비스 제공과 예약 관리를 위해 필요한 범위의 개인정보를 처리합니다. 아래 내용은 현재 구현을 기준으로 작성한 안내 초안이며, 사업자 정보와 보유기간 등 미확정 항목은 운영 전 확정·고지해야 합니다.</p><h3>현재 처리하는 정보</h3><ul><li>회원가입: 이름, 이메일, 암호화되어 관리되는 인증 정보, 회원 유형</li><li>회원 기능: 고용주 또는 근로자가 직접 입력한 프로필·근무조건·희망조건</li><li>예약 기능: 예약 종류, 일시, 장소와 메모</li></ul><h3>이용 목적과 보관</h3><p>입력 정보는 계정 인증, 회원 기능 제공, 예약 저장·조회에 사용됩니다. 인증과 데이터 저장에는 Supabase가 사용됩니다. 구체적인 보유·파기 기간, 개인정보 처리자 정보, 문의 연락처와 국외 이전 관련 고지는 운영 전 법률 검토를 거쳐 확정해야 합니다.</p><h3>시연 데이터</h3><p>‘시연용 가상 데이터’로 표시된 정보는 실제 회원·이용 실적과 분리되며, 실제 고객의 신원 정보로 표시하지 않습니다.</p></article></section>
+    <section class="policy-document" id="privacy-policy" aria-labelledby="privacy-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="privacy-title">개인정보 처리방침</h2><p>그곳잡은 회원가입·로그인, 회원 유형별 서비스 제공과 예약 관리를 위해 필요한 범위의 개인정보를 처리합니다. 아래 내용은 현재 구현을 기준으로 작성한 안내 초안이며, 사업자 정보와 보유기간 등 미확정 항목은 운영 전 확정·고지해야 합니다.</p><h3>현재 처리하는 정보</h3><ul><li>회원가입: 이름, 이메일, 암호화되어 관리되는 인증 정보, 회원 유형</li><li>회원 기능: 고용주 또는 근로자가 직접 입력한 프로필·근무조건·희망조건</li><li>예약 기능: 예약 종류, 일시, 장소와 메모</li></ul><h3>이용 목적과 보관</h3><p>입력 정보는 계정 인증, 회원 기능 제공, 예약 저장·조회에 사용됩니다. 인증과 데이터 저장에는 Supabase가 사용됩니다. 구체적인 보유·파기 기간, 개인정보 처리자 정보, 문의 연락처와 국외 이전 관련 고지는 운영 전 법률 검토를 거쳐 확정해야 합니다.</p><h3>선택적 위치정보 저장과 거리 결과 공유</h3><p>본인에게 연결된 채용 건에서 별도로 동의하면 입력한 위도·경도를 직선거리 계산에 사용합니다. 정확한 좌표는 다른 회원에게 공개하지 않고, 해당 건의 당사자와 운영자에게 거리와 기준 범위 결과만 제공합니다. 마지막 저장·동의부터 90일 후 조회·공유를 차단하며 1분 주기의 정리 작업으로 운영 DB에서 삭제합니다. 해당 화면에서 동의를 철회하면 좌표를 즉시 삭제하고 거리 공유를 해제합니다. 위치 제공을 거부해도 회원가입·로그인은 가능합니다. 백업 보관·국외 이전 등 전체 개인정보 처리방침은 별도 운영 검토가 필요합니다.</p><h3>시연 데이터</h3><p>‘시연용 가상 데이터’로 표시된 정보는 실제 회원·이용 실적과 분리되며, 실제 고객의 신원 정보로 표시하지 않습니다.</p></article></section>
 
     <section class="policy-document" id="terms-of-use" aria-labelledby="terms-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="terms-title">이용약관</h2><p>그곳잡은 고용주가 근무조건을 등록하고 근로자가 이를 확인하는 서비스 흐름을 준비하고 있습니다. 현재 공개 사이트에서 실제 연결된 기능과 개발·시연 기능을 구분해 안내합니다.</p><h3>서비스 이용 원칙</h3><ul><li>회원은 본인의 정확한 정보를 입력하고 계정 정보를 안전하게 관리해야 합니다.</li><li>근로계약은 고용주와 근로자가 직접 체결하며, 근무 지시와 임금 지급도 당사자 사이에서 이루어집니다.</li><li>AI 추천 점수와 시연 후보는 예시이며 자동 채용·자동 탈락을 결정하지 않습니다.</li><li>사업 등록과 운영 기준이 확인되기 전에는 실제 소개 및 고객 청구 기능을 운영하지 않습니다.</li></ul><h3>운영 전 확정이 필요한 사항</h3><p>서비스 운영자 정보, 이용 제한·분쟁 처리 기준, 손해배상과 면책 범위, 약관 시행일은 관련 사업 등록과 법률 검토 후 확정해야 합니다.</p></article></section>
 
@@ -333,6 +336,11 @@ loadDemoRecords().then((data) => {
 });
 
 initExpansionExperience({ client: supabase, loadSnapshot: () => loadExpansionSnapshot(supabase), loadDemo: loadDemoRecords });
+initEmploymentUI({ client: supabase, api: createEmploymentApi(supabase, loadClosedBetaConsole), loadDemo: loadDemoRecords, createManual: createManualIntroduction, saveContract: saveContractConfirmation, saveWage: saveWagePaymentResponse, assessCommute: async (id, threshold) => {
+  const { data, error } = await supabase.rpc('assess_introduction_commute', { p_id:id, p_threshold:threshold });
+  if (error) throw error;
+  return data;
+} });
 
 function setMemberMessage(message, type = '') {
   const status = memberApp.querySelector('.form-status');
@@ -536,7 +544,7 @@ function closedBetaConsole(data) {
       <div class="beta-record-head"><div><span>수동 소개 기록</span><h4>${escapeHtml(job.title || '공고')} ↔ ${escapeHtml(oneRelation(worker.profile)?.full_name || '근로자')}</h4></div><b>${escapeHtml(item.status)}</b></div>
       <p><strong>비교 메모</strong>${escapeHtml(item.comparison_notes)}</p><p><strong>선택 근거</strong>${escapeHtml(item.selection_reason || '미입력')}</p>${item.employer_feedback ? `<p><strong>고용주 의견</strong>${escapeHtml(item.employer_feedback)}</p>` : ''}
       <div class="beta-stage-grid">
-        <form class="beta-contract-form" data-introduction-id="${item.id}"><h5>1. 근로계약 체결 확인</h5><label>상태<select name="status"><option value="pending" ${contract?.status === 'pending' || !contract ? 'selected' : ''}>확인 대기</option><option value="submitted" ${contract?.status === 'submitted' ? 'selected' : ''}>확인자료 접수</option><option value="confirmed" ${contractConfirmed ? 'selected' : ''}>체결 확인</option><option value="rejected" ${contract?.status === 'rejected' ? 'selected' : ''}>확인 반려</option></select></label><label>확인 방법·근거<input name="confirmation_method" value="${escapeHtml(contract?.confirmation_method || '')}" placeholder="기준 확정 후 직접 입력"></label><label>증빙 참조 메모<input name="evidence_reference" value="${escapeHtml(contract?.evidence_reference || '')}"></label><button class="button" type="submit">계약 상태 저장</button><p class="form-status" role="status"></p></form>
+        <form class="beta-contract-form" data-introduction-id="${item.id}"><h5>1. 계약 자료 검토</h5><a href="#work-management">전자계약 체결 완료 확인 →</a><p>완료 상태는 검증된 체결 근거로만 변경됩니다.</p><label>상태<select name="status"><option value="pending" ${contract?.status === 'pending' || !contract ? 'selected' : ''}>확인 대기</option><option value="submitted" ${contract?.status === 'submitted' ? 'selected' : ''}>확인자료 접수</option><option value="rejected" ${contract?.status === 'rejected' ? 'selected' : ''}>확인 반려</option></select></label><label>확인 방법·근거<input name="confirmation_method" value="${escapeHtml(contract?.confirmation_method || '')}" placeholder="기준 확정 후 직접 입력"></label><label>증빙 참조 메모<input name="evidence_reference" value="${escapeHtml(contract?.evidence_reference || '')}"></label><button class="button" type="submit" ${contractConfirmed ? 'disabled' : ''}>자료 검토 상태 저장</button><p class="form-status" role="status"></p></form>
         <form class="beta-payment-form" data-introduction-id="${item.id}" data-payer-profile-id="${payerProfileId}"><h5>2. 결제 준비·테스트</h5><p>19,000원 · 임시 검증 가격<br>결제 제공자 미연결 · 실제 청구 없음</p><div class="payment-gate ${contractConfirmed ? 'eligible' : 'blocked'}">${contractConfirmed ? '계약 확인됨 · 테스트 가능' : '계약 확인 전 · 결제 차단'}</div><button class="button" type="submit" name="charge_status" value="blocked">테스트 결제수단·동의 기록</button><button class="button lime" type="submit" name="charge_status" value="test_completed" ${contractConfirmed ? '' : 'disabled'}>무청구 결제 흐름 완료</button><small>현재 상태: ${escapeHtml(payment?.charge_status || 'blocked')}</small><p class="form-status" role="status"></p></form>
         <form class="beta-outcome-form" data-introduction-id="${item.id}"><h5>3. 근무 결과</h5><label>출근 여부<select name="attendance_status"><option value="unknown">미확인</option><option value="attended" ${outcome?.attendance_status === 'attended' ? 'selected' : ''}>출근</option><option value="no_show" ${outcome?.attendance_status === 'no_show' ? 'selected' : ''}>미출근</option></select></label><label>첫 근무<select name="first_shift_status"><option value="unknown">미확인</option><option value="completed" ${outcome?.first_shift_status === 'completed' ? 'selected' : ''}>완료</option><option value="not_completed" ${outcome?.first_shift_status === 'not_completed' ? 'selected' : ''}>미완료</option></select></label><label>계약기간 결과<select name="contract_outcome"><option value="unknown">미확인</option><option value="in_progress" ${outcome?.contract_outcome === 'in_progress' ? 'selected' : ''}>이행 중</option><option value="completed" ${outcome?.contract_outcome === 'completed' ? 'selected' : ''}>계약기간 완료</option><option value="ended_early" ${outcome?.contract_outcome === 'ended_early' ? 'selected' : ''}>중도 종료</option></select></label><label>결과 메모<textarea name="outcome_notes" rows="2">${escapeHtml(outcome?.outcome_notes || '')}</textarea></label><button class="button" type="submit">근무 결과 저장</button><p class="form-status" role="status"></p></form>
       </div>
@@ -567,7 +575,7 @@ function openBetaAdminConsole(data) {
   const commuteRows = introductions.map((item) => {
     const commute = commuteByIntro.get(item.id);
     const result = commute?.status === 'calculated' || commute?.status === 'manual_verified'
-      ? `${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '근거리' : '기준 밖'} (기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km)`
+      ? `직선거리 ${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '기준 이내' : '기준 밖'} (기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km, 이동거리·통근시간 아님)`
       : '미판별';
     return `<article><b>소개 ${escapeHtml(item.id.slice(0, 8))}</b><p>${escapeHtml(result)}</p><button class="button open-beta-distance" data-introduction-id="${item.id}" type="button">거리 판별 실행</button><p class="form-status" role="status"></p></article>`;
   }).join('');
@@ -610,9 +618,9 @@ function openBetaMemberPanel(data, role) {
     const review = oneRelation(wage?.review);
     const ended = ['completed', 'ended_early'].includes(outcome?.contract_outcome);
     const commuteText = commute && ['calculated', 'manual_verified'].includes(commute.status)
-      ? `${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '근거리' : '기준 밖'} (판별 기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km)`
+      ? `직선거리 ${Number(commute.distance_km).toLocaleString('ko-KR')}km · ${commute.is_nearby ? '기준 이내' : '기준 밖'} (판별 기준 ${Number(commute.nearby_threshold_km).toLocaleString('ko-KR')}km, 이동거리·통근시간 아님)`
       : '아직 판별되지 않음';
-    return `<article class="beta-record"><div class="beta-record-head"><div><span>실제 소개 기록</span><h4>${escapeHtml(job.company_name || '사업장')} · ${escapeHtml(job.title || '공고')}</h4></div><b>${escapeHtml(item.status)}</b></div><p><strong>출퇴근 거리</strong>${escapeHtml(commuteText)}</p><p><strong>근무 결과</strong>${escapeHtml(outcome?.contract_outcome || '미확인')}</p>${role === 'worker' ? `<form class="wage-response-form" data-introduction-id="${item.id}" data-worker-id="${item.worker_id}"><h5>근무 종료 후 급여 지급 여부</h5><label>응답<select name="response"><option value="unknown">확인 중</option><option value="paid" ${wage?.response === 'paid' ? 'selected' : ''}>지급됨</option><option value="partially_paid" ${wage?.response === 'partially_paid' ? 'selected' : ''}>일부 지급</option><option value="not_paid" ${wage?.response === 'not_paid' ? 'selected' : ''}>미지급</option></select></label><label>메모<textarea name="response_note" maxlength="2000" rows="2">${escapeHtml(wage?.response_note || '')}</textarea></label><button class="button" type="submit" ${ended ? '' : 'disabled'}>${wage ? '응답 수정' : '응답 저장'}</button><small>${ended ? `운영자 검토 상태: ${escapeHtml(review?.status || '검토 생성 전')}` : '근무 종료 결과가 기록된 뒤 응답할 수 있습니다.'}</small><p class="form-status" role="status"></p></form>` : ''}</article>`;
+    return `<article class="beta-record"><div class="beta-record-head"><div><span>실제 소개 기록</span><h4>${escapeHtml(job.company_name || '사업장')} · ${escapeHtml(job.title || '공고')}</h4></div><b>${escapeHtml(item.status)}</b></div><p><strong>출퇴근 거리</strong>${escapeHtml(commuteText)}</p><p><strong>근무 결과</strong>${escapeHtml(outcome?.contract_outcome || '미확인')}</p>${role === 'worker' ? `<form class="wage-response-form" data-introduction-id="${item.id}" data-worker-id="${item.worker_id}"><h5>근무 종료 후 급여 지급 여부</h5><label>응답<select name="response" required><option value="">선택하세요</option><option value="paid" ${wage?.response === 'paid' ? 'selected' : ''}>지급받음</option><option value="not_paid" ${wage?.response === 'not_paid' ? 'selected' : ''}>아직 지급받지 못함</option></select></label><label>메모<textarea name="response_note" maxlength="2000" rows="2">${escapeHtml(wage?.response_note || '')}</textarea></label><button class="button" type="submit" ${ended ? '' : 'disabled'}>${wage ? '응답 수정' : '응답 저장'}</button><small>${ended ? `운영자 검토 상태: ${escapeHtml(review?.status || '검토 생성 전')}` : '근무 종료 결과가 기록된 뒤 응답할 수 있습니다.'}</small><p class="form-status" role="status"></p></form>` : ''}</article>`;
   }).join('');
   return `<section class="open-beta-console"><div class="compliance-banner"><b>시제품 2 · 실제 기록 영역</b><p>표시된 거리와 상태는 Supabase에 저장된 실제 기록만 사용합니다. 없는 값은 미판별 또는 미확인으로 표시합니다.</p></div><div class="beta-records">${introCards || '<p class="empty-state">연결된 실제 소개 기록이 없습니다.</p>'}</div><form id="reuse-intention-form" class="mvp-card mvp-form"><div class="card-title"><span>서비스 이용 의향</span><h3>재이용 여부 기록</h3></div><label>관련 소개<select name="introduction_id"><option value="">전체 서비스</option>${data.introductions.map((item) => `<option value="${item.id}">${escapeHtml(item.id.slice(0, 8))}</option>`).join('')}</select></label><label>재이용 의향<select name="response"><option value="undecided">미정</option><option value="yes">재이용 의향 있음</option><option value="no">재이용 의향 없음</option></select></label><label>의견<textarea name="response_note" maxlength="1000" rows="2"></textarea></label><button class="button" type="submit">실제 응답 저장</button><p class="form-status" role="status"></p></form></section>`;
 }
@@ -764,6 +772,7 @@ async function renderDashboard(session) {
       <div class="dashboard-head"><div><span>${roleLabel} 회원</span><h3>${escapeHtml(profile.full_name || session.user.email)}</h3><p>${escapeHtml(session.user.email)}</p></div><button type="button" class="button ghost" id="sign-out">로그아웃</button></div>
       ${notice ? `<div class="dashboard-notice">${escapeHtml(notice)}</div>` : ''}
       ${hasLoadWarning ? '<div class="dashboard-warning"><p><b>로그인은 정상적으로 완료되었습니다.</b><br>일부 정보를 잠시 불러오지 못했습니다.</p><button type="button" id="retry-dashboard">다시 불러오기</button></div>' : ''}
+      <a class="button lime" href="#work-management">수동 매칭·전자계약·급여·거리 관리</a>
       ${mvpContent}
       ${betaContent}
       ${openBetaContent}
