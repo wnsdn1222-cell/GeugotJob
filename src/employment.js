@@ -8,7 +8,7 @@ export function employmentSection() {
     <div class="section-heading"><div><span class="feature-state planned">실제 기록과 시연 분리</span><h2>수동 매칭부터<br>계약·급여 확인까지</h2></div><p>계약은 검증된 체결 근거로만 확인합니다. 급여 기록은 근로자의 응답이며, 미지급 확정이나 자동 차단을 의미하지 않습니다.</p></div>
     <div class="expansion-modes"><button type="button" data-employment-mode="actual" aria-pressed="true">내 실제 근무 건</button><button type="button" data-employment-mode="demo" aria-pressed="false">시연용 예시 체험</button></div>
     <p id="employment-notice" role="status" class="employment-notice"></p><div id="employment-content" aria-live="polite"></div>
-    <div class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 자동 위치 가져오기</span><h3>좌표 입력 없이 직선거리 확인</h3><p>로그인한 고용주와 근로자가 각자의 기기에서 위치 제공에 동의하고 ‘현재 위치 자동 저장’을 누르면, 브라우저가 좌표를 가져와 서버에 저장합니다. 두 위치가 저장되면 직선거리가 자동 계산됩니다. 정확한 좌표는 상대방에게 보이지 않습니다.</p><p>지도 이동거리·통근시간은 지도 API 연결 전에는 계산하지 않습니다. 현재는 직선거리만 표시합니다.</p><a class="button lime" href="#member" data-expansion-login>로그인 후 자동 위치 저장</a></div>
+    <div class="expansion-card employment-local-distance"><span class="feature-state live">실제 동작 · 자동 위치 가져오기</span><h3>좌표 입력 없이 직선거리 확인</h3><p>로그인한 고용주와 근로자가 각자의 기기에서 위치 제공에 동의하고 ‘현재 위치 자동 저장’을 누르면, 브라우저가 좌표를 가져와 서버에 저장합니다. 두 위치가 저장되면 직선거리가 자동 계산됩니다. 정확한 좌표는 상대방에게 보이지 않습니다.</p><p>지도 이동거리·통근시간은 지도 API 연결 전에는 계산하지 않습니다. 현재는 직선거리만 표시합니다.</p><a class="button lime" href="#member" data-expansion-login data-login-target="#work-management">로그인 후 자동 위치 저장</a></div>
   </section>`;
 }
 

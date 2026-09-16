@@ -38,6 +38,7 @@ test('manual comparison has five requested criteria without synthetic conditions
 });
 test('location is collected from the device only after consent, without manual coordinate entry',()=>{
   assert.match(employmentSection(),/현재 위치 자동 저장/);
+  assert.match(employmentSection(),/data-login-target="#work-management"/);
   assert.match(employmentSection(),/좌표 입력 없이/);
   assert.doesNotMatch(employmentSection(),/사업장 위도/);
   assert.doesNotMatch(employmentSection(),/근로자의 통근 출발 위치/);

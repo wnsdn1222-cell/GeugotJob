@@ -1220,15 +1220,38 @@ document.querySelectorAll('[data-start]').forEach((button) => button.addEventLis
 }));
 
 document.addEventListener('click', (event) => {
-  if (!event.target.closest('.login-link, [data-expansion-login]')) return;
-  authMode = 'login';
-  renderAuth();
+  const trigger = event.target.closest('.login-link, [data-expansion-login]');
+  if (!trigger) return;
+  event.preventDefault();
+  const afterLogin = trigger.dataset.loginTarget;
+  const showMember = () => navigateSideways(document.querySelector('#member'), '#member');
+  if (!supabase) { authMode = 'login'; renderAuth(); showMember(); return; }
+  void supabase.auth.getSession().then(async ({ data }) => {
+    if (data.session) {
+      await renderDashboard(data.session);
+      if (afterLogin) navigateSideways(document.querySelector(afterLogin), afterLogin);
+      else showMember();
+      return;
+    }
+    if (afterLogin) sessionStorage.setItem('geugot-after-login-target', afterLogin);
+    authMode = 'login';
+    renderAuth();
+    showMember();
+  });
 });
 
 if (supabase) {
   supabase.auth.getSession().then(({ data }) => data.session ? renderDashboard(data.session) : renderAuth());
   supabase.auth.onAuthStateChange((_event, session) => {
-    window.setTimeout(() => session ? renderDashboard(session) : renderAuth(), 0);
+    window.setTimeout(async () => {
+      if (!session) { renderAuth(); return; }
+      await renderDashboard(session);
+      const afterLogin = sessionStorage.getItem('geugot-after-login-target');
+      if (afterLogin) {
+        sessionStorage.removeItem('geugot-after-login-target');
+        navigateSideways(document.querySelector(afterLogin), afterLogin);
+      }
+    }, 0);
   });
 } else {
   renderAuth();
