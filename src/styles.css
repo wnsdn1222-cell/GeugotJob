@@ -209,3 +209,67 @@ body,#app,#main,#main>section,#main>footer { background-color:var(--page-canvas)
   .steps p { grid-column:2; }
   .prototype-steps button { padding:68px 16px 16px 24px; line-height:1.6; text-align:left; }
 }
+
+/* Expansion pages reuse the dark canvas, lime controls and light data cards. */
+.expansion-section { color:#fff; padding:112px max(5vw,20px) 60px; }
+.expansion-section .section-heading { align-items:flex-start; gap:32px; }
+.expansion-section .section-heading>div { min-width:0; flex:1; }
+.expansion-section .section-heading h2 { font-size:clamp(30px,3.7vw,50px); word-break:keep-all; }
+.expansion-section .section-heading>p { flex:1; max-width:470px; font-size:14px; }
+.expansion-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px; }
+.expansion-nav a { padding:10px 14px; border:1px solid #637267; border-radius:9px; color:inherit; font-size:12px; font-weight:700; }
+.expansion-nav a:hover,.expansion-nav a:focus-visible { background:var(--lime); color:var(--ink); }
+.feature-state { display:inline-flex; max-width:100%; margin-bottom:14px; padding:6px 10px; border:1px solid; border-radius:20px; font-size:11px; font-weight:800; line-height:1.5; }
+.feature-state.planned { color:#e0edc1; background:#283622; border-color:#718a4a; }
+.feature-state.review { color:#68460c; background:#fff0cf; border-color:#ba974f; }
+.feature-state.demo { color:#314309; background:#e5ff95; border-color:#7c922e; }
+.feature-state.live { color:#194a3a; background:#dff3e8; border-color:#6e9d88; }
+.expansion-legend { margin:20px 0; color:#bec9c1; font-size:12px; line-height:1.8; }
+.expansion-modes { display:flex; flex-wrap:wrap; gap:8px; margin:24px 0 18px; }
+.expansion-modes button { padding:12px 18px; border:1px solid #8a998e; border-radius:9px; background:transparent; color:#dce5de; font-size:13px; font-weight:700; cursor:pointer; }
+.expansion-modes button[aria-pressed="true"] { background:var(--lime); color:var(--ink); border-color:var(--lime); }
+.expansion-content,.expansion-card { min-width:0; }
+.expansion-card { padding:28px; border:1px solid #d9ddd6; border-radius:16px; background:#f8f9f6; color:var(--ink); }
+.expansion-card h3 { margin:8px 0 16px; font-size:22px; }
+.expansion-card p,.expansion-review-grid p,.expansion-review-grid li { font-size:13px; line-height:1.8; color:#46564c; word-break:keep-all; overflow-wrap:anywhere; }
+.expansion-card label { display:grid; gap:8px; min-width:0; font-size:12px; font-weight:800; color:#405648; }
+.expansion-card select { width:100%; min-width:0; min-height:46px; padding:10px; border:1px solid #a8b6aa; border-radius:8px; background:#fff; color:var(--ink); font:inherit; }
+.expansion-selectors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.information-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; margin:22px 0; }
+.information-summary>div { display:grid; grid-template-columns:125px minmax(0,1fr); gap:12px; padding:14px 0; border-bottom:1px solid #d9ddd6; font-size:13px; line-height:1.7; }
+.information-summary dt { color:#596a60; }.information-summary dd { margin:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+.expansion-callout { margin:24px 0; padding:22px; border:1px solid #65775c; border-radius:13px; background:#1f2b20; color:#e4eedc; }
+.expansion-callout b { font-size:14px; }.expansion-callout p { margin:9px 0 0; color:#c5d0c0; font-size:13px; line-height:1.8; word-break:keep-all; }
+.expansion-link { display:inline-block; margin-top:16px; color:var(--lime); font-size:13px; }
+.expansion-empty { padding:22px; border:1px solid #657267; border-radius:12px; color:#d0dbd3; line-height:1.8; font-size:14px; }
+.expansion-empty.error { color:#ffd0c4; border-color:#bb7864; }
+.comparison-table { margin:20px 0; border:1px solid #cbd4ca; border-radius:10px; overflow:hidden; }
+.comparison-row { display:grid; grid-template-columns:minmax(90px,.65fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr); gap:16px; padding:16px; border-bottom:1px solid #d9ddd6; font-size:12px; line-height:1.8; }
+.comparison-row:last-child { border-bottom:0; }.comparison-row>* { min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; }.comparison-head { background:#e8efdf; }
+.expansion-review-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin:30px 0; }
+.expansion-review-grid>article { padding:26px; border:1px solid #d9ddd6; border-radius:16px; background:#f8f9f6; color:var(--ink); }
+.expansion-review-grid h3 { margin:0 0 12px; font-size:22px; }.expansion-review-grid ul { padding-left:20px; }
+.policy-document.expansion-section>article { width:min(1100px,100%); padding-top:62px; }
+.policy-document.expansion-section h2 { word-break:keep-all; }
+.policy-document.expansion-section .expansion-callout p { color:#c5d0c0; }
+.prototype-person>strong.unscored-label { font-size:13px; }
+@media (max-width:1000px) {
+  #main { scroll-behavior:auto; }
+  .expansion-section .section-heading { display:block; }
+  .expansion-section .section-heading>p { margin-top:18px; max-width:720px; }
+  .information-summary { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:760px) {
+  .expansion-section { padding:92px 20px 40px; }
+  .expansion-nav { gap:6px; }.expansion-nav a { padding:9px 10px; font-size:11px; }
+  .expansion-card { padding:20px; }.expansion-modes button { flex:1; padding:12px; font-size:12px; }
+  .expansion-review-grid,.expansion-selectors { grid-template-columns:minmax(0,1fr); }
+  .information-summary>div { grid-template-columns:100px minmax(0,1fr); gap:10px; }
+  .comparison-head { display:none; }
+  .comparison-row { grid-template-columns:minmax(0,1fr); gap:10px; }
+  .comparison-row>span:nth-child(2)::before { content:'고용주 조건 · '; font-weight:800; color:#526649; }
+  .comparison-row>span:nth-child(3)::before { content:'근로자 정보 · '; font-weight:800; color:#526649; }
+  .comparison-row>span:nth-child(4)::before { content:'확인 근거 · '; font-weight:800; color:#526649; }
+  .policy-document.expansion-section { padding-inline:14px; }
+  .policy-document.expansion-section>article { padding:60px 20px 30px; }
+}

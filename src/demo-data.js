@@ -10,11 +10,10 @@ export const demoRecommendation = {
   name: '홍길동',
   initials: '홍',
   role: '생산·포장 · 경력 3년',
-  score: 92,
   factors: [
-    { value: '8.4km', label: '가상 통근 거리' },
-    { value: '96', label: '예시 성실성' },
-    { value: '88', label: '예시 소통 능력' }
+    { value: '예시', label: '유사업무 경험' },
+    { value: '확인 필요', label: '통근 여건' },
+    { value: '확인 필요', label: '희망조건' }
   ],
   reason: '입력 조건과 유사 업무 경험을 바탕으로 구성한 화면 예시입니다. 실제 계산 결과가 아닙니다.'
 };

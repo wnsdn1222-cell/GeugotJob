@@ -1,4 +1,6 @@
 import './styles.css';
+import { workerInformationSection, matchingSection, visaSection, pointsSection, initExpansionExperience } from './expansion.js';
+import { loadExpansionSnapshot } from './expansion-data.js';
 import { demoDataLabel, prototypeTargetStats, demoRecommendation, demoInterview } from './demo-data.js';
 import {
   supabase,
@@ -65,11 +67,11 @@ const icon = (name, size = 20) => {
 app.innerHTML = `
   <header class="site-header">
     <a class="brand" href="#start" aria-label="그곳잡 홈"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a>
-    <nav class="desktop-nav" aria-label="주요 메뉴"><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></nav>
+    <nav class="desktop-nav" aria-label="주요 메뉴"><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">AI 맞춤 매칭</a><a href="#worker-information">사업 확장</a></nav>
     <div class="header-actions"><a class="text-link" href="#for-worker">일자리 찾기</a><a class="button small" href="#start">인재 찾기 ${icon('arrow', 17)}</a></div>
     <button class="menu-button" type="button" aria-label="메뉴 열기" aria-expanded="false">${icon('menu', 24)}</button>
   </header>
-  <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">추천 예시</a><a href="#visa">비자 지원 준비</a></div>
+  <div class="mobile-menu" aria-hidden="true"><a href="#start">회원 시작</a><a href="#top">서비스 소개</a><a href="#how">이용 방법</a><a href="#prototype">흐름 시연</a><a href="#matching">AI 맞춤 매칭</a><a href="#worker-information">사업 확장</a></div>
 
   <main id="main">
     <section class="start-section first-screen" id="start"><span class="brand-mark large">ㄱ</span><h2>실제 근무조건과<br>통근 여건을 비교하세요.</h2><p class="start-intro">고용주는 근무시간·임금·업무 내용을 등록하고, 근로자는 희망조건과 통근 여건을 확인한 뒤 면접을 요청할 수 있습니다.</p><div class="service-overview" aria-label="서비스 이용 흐름"><span><b>고용주</b> 실제 근무조건 등록</span><span><b>근로자</b> 공고·통근 여건 확인</span><span>면접 일정 확인</span></div><p class="start-action-label">회원 유형을 선택해 가입을 시작하세요.</p><div class="start-choices"><button class="button lime" data-start="employer">고용주 회원가입 ${icon('arrow', 18)}</button><button class="button ghost" data-start="worker">근로자 회원가입</button><a class="button login-link" href="#member">회원 로그인</a><a class="button demo-link" href="#prototype">서비스 직접 시연 ${icon('arrow', 18)}</a></div><div class="service-status-summary" aria-label="서비스 운영 상태"><article><span>웹사이트 공개 상태</span><b>공개 배포 중</b><p>회원가입·로그인과 예약 등록·조회 기능을 이용할 수 있습니다.</p></article><article><span>정식 매칭 운영 상태</span><b>운영 전 준비 단계</b><p>공고·지원·직접 연락은 개발 검증 중이며 AI 추천 계산은 연결되지 않았습니다.</p></article></div></section>
@@ -87,7 +89,7 @@ app.innerHTML = `
       </div>
       <div class="match-preview" aria-label="추천 인재 시연 예시">
         <em class="demo-badge">${demoDataLabel}</em>
-        <div class="preview-top"><span>${icon('spark', 17)} 추천 인재 예시</span><b>${demoRecommendation.score}<small>점</small></b></div>
+        <div class="preview-top"><span>${icon('spark', 17)} 추천 인재 예시</span><small>AI 개발 예정</small></div>
         <div class="person"><span class="avatar">${demoRecommendation.initials}</span><div><strong>${demoRecommendation.name}</strong><small>${demoRecommendation.role}</small></div><i>예시</i></div>
         <div class="factors">${demoRecommendation.factors.map((factor) => `<span><b>${factor.value}</b>${factor.label}</span>`).join('')}</div>
         <p><span></span> ${demoRecommendation.reason}</p>
@@ -105,19 +107,14 @@ app.innerHTML = `
       <div class="prototype-shell"><nav id="prototype-steps" class="prototype-steps" aria-label="시연 단계"></nav><div id="prototype-panel" class="prototype-panel" aria-live="polite"></div></div>
     </section>
 
-    <section class="matching-section" id="matching">
-      <div class="matching-copy"><span class="demo-badge">${demoDataLabel}</span><h2>점수보다 중요한 건,<br><em>왜 맞는지</em>입니다.</h2><p>이 영역은 추천 근거를 어떻게 보여줄지 설명하는 화면 예시입니다. 실제 AI 모델이나 점수 계산은 아직 연결되지 않았습니다.</p><ul><li>${icon('check', 17)} 표시된 점수와 인원은 실제 이용 기록이 아닌 예시</li><li>${icon('check', 17)} 국적·성별·연령은 업무 적합도 점수에서 제외 예정</li><li>${icon('check', 17)} AI에 의한 자동 탈락·자동 채용 금지</li></ul></div>
-      <div class="score-card"><div class="score-head"><div><span>시연 공고</span><strong>안산 해솔식당 · 생산 포장</strong></div><b>예시 12명</b></div><div class="candidate"><div class="candidate-main"><span class="avatar blue">홍</span><div><strong>홍길동</strong><small>시연 후보 · 생산·포장</small></div><i>92점</i></div><div class="bar"><span style="width:92%"></span></div></div><div class="score-grid"><div><span>출퇴근 가능성</span><b>91</b><small>시연용 예시값</small></div><div><span>성실성</span><b>96</b><small>시연용 예시값</small></div><div><span>의사소통</span><b>88</b><small>시연용 예시값</small></div><div><span>업무 능력</span><b>92</b><small>시연용 예시값</small></div></div><div class="reason"><span>${icon('spark', 18)}</span><p><b>추천 근거 예시</b>${demoRecommendation.reason}</p></div><small class="model-note">${demoDataLabel} · 실제 AI 계산 결과가 아닙니다.</small></div>
-    </section>
+    ${workerInformationSection()}
+    ${matchingSection()}
 
     <section class="section dual-audience" id="audiences">
       <div class="audience-grid"><article><span class="audience-no">고용주</span><h2>필요한 조건을<br>직접 등록하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 등록·지원자 조회는 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·지원자</li><li>시연 화면: 추천·채용 결정</li></ul><a href="#start">고용주로 시작하기 ${icon('arrow', 18)}</a></article><article id="for-worker"><span class="audience-no">근로자</span><h2>근무조건을 보고<br>직접 지원하세요.</h2><p>회원가입과 예약은 실제 저장됩니다. 공고 확인·직접 지원은 신고 확인 전 개발 검증 모드에서 준비되어 있습니다.</p><ul><li>실제 동작: 회원·예약</li><li>개발 검증: 공고·직접 지원</li><li>시연 화면: 추천·면접 흐름</li></ul><a href="#start">근로자로 시작하기 ${icon('arrow', 18)}</a></article></div>
     </section>
 
-    <section class="visa-section" id="visa">
-      <div><h2>비자 지원은<br>현재 준비 중입니다.</h2><p>체류 자격 확인과 전문 행정 파트너 연결은 아직 실제 접수·운영 기능이 아닙니다. 아래는 제공 예정 범위를 설명하는 화면입니다.</p><a class="button ghost" href="#prototype">이용 흐름 시연 보기 ${icon('arrow', 18)}</a></div>
-      <div><div class="visa-list"><article><i>${icon('shield', 22)}</i><div><b>체류 자격 정보 입력</b><span>저장되지 않는 시연</span></div></article><article><i>${icon('globe', 22)}</i><div><b>확인 항목 안내</b><span>실제 취업 가능 판정 아님</span></div></article><article><i>${icon('route', 22)}</i><div><b>전문 파트너 연결</b><span>요청 전송 없는 시연</span></div></article></div><div id="visa-demo" class="visa-demo" aria-live="polite"></div></div>
-    </section>
+    ${visaSection()}
 
     <section class="section trust" id="trust"><div class="section-heading"><h2>더 공정한 연결을 위한<br>그곳잡의 원칙.</h2><p>채용의 속도만큼 정보의 안전과 기능 상태의 투명성을 중요하게 생각합니다.</p></div><div class="trust-grid"><article><b>01</b><h3>민감 정보는 최소한으로</h3><p>채용에 필요한 범위 안에서만 정보를 저장하고 보여줍니다.</p></article><article><b>02</b><h3>추천과 결정은 분리해서</h3><p>추천 예시는 자동 채용을 하지 않으며 실제 계산값처럼 표시하지 않습니다.</p></article><article><b>03</b><h3>실제와 시연은 분리해서</h3><p>가상 인원과 가상 이용 내역에는 시연용 가상 데이터 표시를 붙입니다.</p></article></div></section>
 
@@ -125,7 +122,7 @@ app.innerHTML = `
 
     <section class="policy-document" id="terms-of-use" aria-labelledby="terms-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">운영 전 안내 초안 · 법률 검토 필요</p><h2 id="terms-title">이용약관</h2><p>그곳잡은 고용주가 근무조건을 등록하고 근로자가 이를 확인하는 서비스 흐름을 준비하고 있습니다. 현재 공개 사이트에서 실제 연결된 기능과 개발·시연 기능을 구분해 안내합니다.</p><h3>서비스 이용 원칙</h3><ul><li>회원은 본인의 정확한 정보를 입력하고 계정 정보를 안전하게 관리해야 합니다.</li><li>근로계약은 고용주와 근로자가 직접 체결하며, 근무 지시와 임금 지급도 당사자 사이에서 이루어집니다.</li><li>AI 추천 점수와 시연 후보는 예시이며 자동 채용·자동 탈락을 결정하지 않습니다.</li><li>사업 등록과 운영 기준이 확인되기 전에는 실제 소개 및 고객 청구 기능을 운영하지 않습니다.</li></ul><h3>운영 전 확정이 필요한 사항</h3><p>서비스 운영자 정보, 이용 제한·분쟁 처리 기준, 손해배상과 면책 범위, 약관 시행일은 관련 사업 등록과 법률 검토 후 확정해야 합니다.</p></article></section>
 
-    <section class="policy-document" id="points-policy" aria-labelledby="points-title"><article><a class="policy-close" href="#trust">안내 닫기</a><p class="policy-state">사업 확장 단계 도입 예정 · 정책 확정 필요</p><h2 id="points-title">포인트 정책</h2><p>포인트 제도는 현재 운영하지 않으며, 서비스와 사업을 확장하는 단계에서 도입할 예정입니다. 지금은 포인트 충전·적립·사용·환불 기능이 연결되어 있지 않아 회원에게 포인트 잔액이 부여되거나 결제가 청구되지 않습니다.</p><h3>현재 적용 상태</h3><ul><li>도입 시점: 향후 사업 확장 단계</li><li>포인트 구매 및 결제: 현재 미운영</li><li>포인트 적립 및 사용: 현재 미운영</li><li>포인트 환불 및 소멸: 적용 기준 없음</li><li>19,000원 표기: 임시 검증 가격이며 확정 수수료가 아님</li></ul><p>포인트 기능을 도입하기 전 적립·사용·유효기간·소멸·환불 기준과 시행일을 별도로 확정하고, 회원이 이용하기 전에 안내합니다.</p></article></section>
+    ${pointsSection()}
 
     <footer id="site-info"><a class="brand" href="#start"><span class="brand-mark">ㄱ</span><b>그곳잡</b></a><p>현장에 맞는 사람과 일을, 근거로 연결합니다.</p><div><a href="#privacy-policy">개인정보 처리방침</a><a href="#terms-of-use">이용약관</a><a href="#points-policy">포인트 정책</a></div><small>© 2026 그곳잡. All rights reserved.</small></footer>
   </main>
@@ -164,14 +161,14 @@ function currentScreenIndex() {
 }
 
 function commitHashNavigation(target, hash) {
-  const root = document.documentElement;
   const scroller = document.querySelector('#main');
   const previousScrollBehavior = scroller.style.scrollBehavior;
   scroller.style.scrollBehavior = 'auto';
   document.querySelectorAll('.policy-document').forEach((documentSection) => {
     documentSection.classList.toggle('policy-open', documentSection === target);
   });
-  window.history.pushState(null, '', hash);
+  // In-page menus replace the current location, not the user's browser history.
+  if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
   target.scrollIntoView({ block: 'start', inline: 'start' });
   window.requestAnimationFrame(() => { scroller.style.scrollBehavior = previousScrollBehavior; });
 }
@@ -184,15 +181,37 @@ function syncPolicyDocumentFromHash() {
 
 window.addEventListener('popstate', syncPolicyDocumentFromHash);
 
+// Keep the selected page aligned when a phone rotates or the window changes width.
+// Height-only changes (such as opening the keyboard) must not reset the current form.
+let navigationViewportWidth = window.innerWidth;
+let resizeNavigationFrame;
+window.addEventListener('resize', () => {
+  if (window.innerWidth === navigationViewportWidth) return;
+  navigationViewportWidth = window.innerWidth;
+  window.cancelAnimationFrame(resizeNavigationFrame);
+  resizeNavigationFrame = window.requestAnimationFrame(() => {
+    const hash = window.location.hash || '#start';
+    const target = document.getElementById(hash.slice(1));
+    if (target && screenIndexFor(target) >= 0) commitHashNavigation(target, hash);
+  });
+});
+
 function navigateSideways(target, hash) {
   const root = document.documentElement;
   const targetScreenIndex = screenIndexFor(target);
   const sourceScreenIndex = currentScreenIndex();
   const forward = targetScreenIndex >= sourceScreenIndex;
   const direction = forward ? 'forward' : 'backward';
+  const update = () => commitHashNavigation(target, hash);
+
+  // Mobile menus navigate immediately; desktop keeps the requested side transition.
+  if (window.matchMedia('(max-width:1000px), (prefers-reduced-motion:reduce)').matches || targetScreenIndex === sourceScreenIndex) {
+    update();
+    return;
+  }
+
   root.dataset.navigationDirection = direction;
   root.dataset.lastNavigationDirection = direction;
-  const update = () => commitHashNavigation(target, hash);
 
   if (typeof document.startViewTransition === 'function') {
     const transition = document.startViewTransition(update);
@@ -266,7 +285,7 @@ function renderPrototypeFlow() {
     panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">시연용 가상 데이터 · 실제 고객 아님</span><h3>원하는 근무조건을 입력하세요.</h3><p>실제 서비스와 같은 형태의 별도 시연 DB를 사용합니다. 가상 레코드는 목표 달성이나 실제 이용 실적의 근거가 아닙니다.</p><strong class="prototype-db-status">${escapeHtml(demoCountText)}</strong></div><form id="prototype-condition-form" class="prototype-form"><label>시연 음식점<select name="employer">${employerOptions}</select></label><label>직종<input name="job" required value="${escapeHtml(prototypeCondition.job)}"></label><label>지역<input name="city" required value="${escapeHtml(prototypeCondition.city)}"></label><label>희망 임금<input name="wage" required value="${escapeHtml(prototypeCondition.wage)}"></label><label>근무 시간<input name="hours" required value="${escapeHtml(prototypeCondition.hours)}"></label><button class="button lime" type="submit">추천 근거 예시 보기 ${icon('arrow', 17)}</button></form>`;
   } else if (prototypeStep === 1) {
     const workerName = demoWorker?.display_name || demoRecommendation.name;
-    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel} · 실제 계산 아님</span><h3>${escapeHtml(demoEmployer?.display_name || '시연 음식점')} 추천 예시</h3><p>${escapeHtml(prototypeCondition.city)} ${escapeHtml(prototypeCondition.job)} 조건을 화면에 반영한 시연입니다. 추천 엔진이나 실제 고객 평가에서 계산한 결과가 아닙니다.</p></div><div class="prototype-result"><div class="prototype-person"><span class="avatar">${escapeHtml(workerName.slice(0, 1))}</span><div><b>${escapeHtml(workerName)}</b><small>${escapeHtml(demoWorker?.demo_code || 'DEMO-W-001')} · 시연 후보자</small></div><strong>${demoRecommendation.score}점 <em>예시</em></strong></div><ul>${demoRecommendation.factors.map((factor) => `<li><span>${factor.label}</span><b>${factor.value}</b></li>`).join('')}</ul><p>${demoRecommendation.reason}</p><button class="button lime" type="button" data-next-prototype="2">면접 제안 화면 보기 ${icon('arrow', 17)}</button></div>`;
+    panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel} · 실제 계산 아님</span><h3>${escapeHtml(demoEmployer?.display_name || '시연 음식점')} 추천 예시</h3><p>${escapeHtml(prototypeCondition.city)} ${escapeHtml(prototypeCondition.job)} 조건을 화면에 반영한 시연입니다. 추천 엔진이나 실제 고객 평가에서 계산한 결과가 아닙니다.</p></div><div class="prototype-result"><div class="prototype-person"><span class="avatar">${escapeHtml(workerName.slice(0, 1))}</span><div><b>${escapeHtml(workerName)}</b><small>${escapeHtml(demoWorker?.demo_code || 'DEMO-W-001')} · 시연 후보자</small></div><strong class="unscored-label">점수 미산출 <em>AI 개발 예정</em></strong></div><ul>${demoRecommendation.factors.map((factor) => `<li><span>${factor.label}</span><b>${factor.value}</b></li>`).join('')}</ul><p>${demoRecommendation.reason}</p><button class="button lime" type="button" data-next-prototype="2">면접 제안 화면 보기 ${icon('arrow', 17)}</button></div>`;
   } else if (prototypeStep === 2) {
     panel.innerHTML = `<div class="prototype-copy"><span class="demo-badge">${demoDataLabel}</span><h3>면접 일정을 확인합니다.</h3><p>실제 예약 기능은 로그인 후 이용할 수 있습니다. 이 카드는 면접 제안 흐름만 보여주는 가상 내역입니다.</p></div><div class="prototype-result interview-example"><small>${demoInterview.status}</small><h4>${demoRecommendation.name} · ${escapeHtml(prototypeCondition.job)}</h4><dl><div><dt>일시</dt><dd>${demoInterview.when}</dd></div><div><dt>장소</dt><dd>${demoInterview.location}</dd></div><div><dt>상태</dt><dd>응답 대기 · 예시</dd></div></dl><button class="button lime" type="button" data-next-prototype="3">채용 결정 화면 보기 ${icon('arrow', 17)}</button></div>`;
   } else {
@@ -313,31 +332,7 @@ loadDemoRecords().then((data) => {
   renderPrototypeFlow();
 });
 
-let visaDemoStep = 0;
-let visaDemoInput = { visaType: 'E-9 예시', industry: '생산·포장', workPeriod: '3개월 예시' };
-
-function renderVisaDemo() {
-  const panel = document.querySelector('#visa-demo');
-  if (!panel) return;
-  if (visaDemoStep === 0) {
-    panel.innerHTML = `<span class="demo-badge">저장되지 않는 비자 지원 시연</span><h3>체류자격 정보를 입력해 보세요.</h3><p>실제 취업 가능 여부를 판정하거나 신청을 접수하지 않습니다.</p><form id="visa-demo-form"><label>체류자격 유형<select name="visa_type"><option>E-9 예시</option><option>H-2 예시</option><option>기타 유형 예시</option></select></label><label>희망 업종<input name="industry" value="${escapeHtml(visaDemoInput.industry)}"></label><label>희망 근무기간<input name="work_period" value="${escapeHtml(visaDemoInput.workPeriod)}"></label><button class="button lime" type="submit">확인 항목 보기 ${icon('arrow', 17)}</button></form>`;
-  } else if (visaDemoStep === 1) {
-    panel.innerHTML = `<span class="demo-badge">시연 단계 02</span><h3>전문 확인이 필요한 항목입니다.</h3><dl><div><dt>입력 유형</dt><dd>${escapeHtml(visaDemoInput.visaType)}</dd></div><div><dt>희망 업종</dt><dd>${escapeHtml(visaDemoInput.industry)}</dd></div><div><dt>희망 기간</dt><dd>${escapeHtml(visaDemoInput.workPeriod)}</dd></div></dl><p>체류자격별 취업 가능 업종·기간·사업장 조건은 관계 기관 또는 전문 자격자의 확인이 필요합니다.</p><button class="button lime" type="button" data-next-visa>전문 파트너 연결 화면 보기 ${icon('arrow', 17)}</button>`;
-  } else {
-    panel.innerHTML = `<span class="demo-badge">시연 완료</span><h3>연결 요청 화면 예시입니다.</h3><p>실제 파트너에게 정보나 요청을 전송하지 않았으며 어떤 정보도 DB에 저장하지 않았습니다.</p><button class="button ghost" type="button" data-restart-visa>처음부터 다시 시연</button>`;
-  }
-  panel.querySelector('#visa-demo-form')?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    visaDemoInput = { visaType: formText(form, 'visa_type'), industry: formText(form, 'industry'), workPeriod: formText(form, 'work_period') };
-    visaDemoStep = 1;
-    renderVisaDemo();
-  });
-  panel.querySelector('[data-next-visa]')?.addEventListener('click', () => { visaDemoStep = 2; renderVisaDemo(); });
-  panel.querySelector('[data-restart-visa]')?.addEventListener('click', () => { visaDemoStep = 0; renderVisaDemo(); });
-}
-
-renderVisaDemo();
+initExpansionExperience({ client: supabase, loadSnapshot: () => loadExpansionSnapshot(supabase), loadDemo: loadDemoRecords });
 
 function setMemberMessage(message, type = '') {
   const status = memberApp.querySelector('.form-status');
@@ -1215,7 +1210,8 @@ document.querySelectorAll('[data-start]').forEach((button) => button.addEventLis
   navigateSideways(document.querySelector('#member'), '#member');
 }));
 
-document.querySelector('.login-link').addEventListener('click', () => {
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.login-link, [data-expansion-login]')) return;
   authMode = 'login';
   renderAuth();
 });

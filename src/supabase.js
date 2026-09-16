@@ -621,18 +621,6 @@ export async function loadRecommendedWorkers() {
   return data;
 }
 
-export async function requestWithdrawal(amount) {
-  if (!supabase) return { demo: true };
-  const { data: sessionData } = await supabase.auth.getSession();
-  const userId = sessionData.session?.user?.id;
-  if (!userId) throw new Error('로그인이 필요합니다.');
-
-  const { data, error } = await supabase
-    .from('withdrawal_requests')
-    .insert({ user_id: userId, amount })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export async function requestWithdrawal() {
+  throw new Error('현금 인출 가능한 플랫폼 포인트는 검토 예정입니다. 운영 기준 확정 전에는 출금 요청을 받지 않습니다.');
 }
