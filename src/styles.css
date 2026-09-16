@@ -196,10 +196,13 @@ body,#app,#main,#main>section,#main>footer { background-color:var(--page-canvas)
 @media (max-width:1100px) {
   .prototype-panel { grid-template-columns:minmax(0,1fr); }
 }
-@media (max-width:760px) {
-  /* Keep the service introduction copy and demo card in the same flow on phones. */
-  .hero { flex-direction:column; }
+@media (max-width:1000px) {
+  /* Keep intro copy and the demo card in flow, including landscape phones. */
+  .hero { flex-direction:column; align-items:stretch; }
+  .hero-content { width:100%; min-width:0; flex:0 0 auto; }
   .match-preview { position:relative; inset:auto; width:100%; margin:24px 0 0; flex:0 0 auto; }
+}
+@media (max-width:760px) {
   .prototype-shell,.prototype-form { grid-template-columns:minmax(0,1fr); }
   .steps article,.steps article+article { grid-template-columns:58px minmax(0,1fr); }
   .steps i { margin:0; }
