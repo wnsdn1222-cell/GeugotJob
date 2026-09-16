@@ -197,6 +197,9 @@ body,#app,#main,#main>section,#main>footer { background-color:var(--page-canvas)
   .prototype-panel { grid-template-columns:minmax(0,1fr); }
 }
 @media (max-width:760px) {
+  /* Keep the service introduction copy and demo card in the same flow on phones. */
+  .hero { flex-direction:column; }
+  .match-preview { position:relative; inset:auto; width:100%; margin:24px 0 0; flex:0 0 auto; }
   .prototype-shell,.prototype-form { grid-template-columns:minmax(0,1fr); }
   .steps article,.steps article+article { grid-template-columns:58px minmax(0,1fr); }
   .steps i { margin:0; }
